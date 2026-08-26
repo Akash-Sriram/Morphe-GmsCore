@@ -244,6 +244,16 @@ public class BackendMap implements ItemizedLayer.OnItemGestureListener<MarkerIte
             dragLastX = motionEvent.getX();
             dragLastY = motionEvent.getY();
         }
+        if (motionEvent.getAction() == MotionEvent.ACTION_UP && currentlyDraggedItem == null) {
+            float dx = Math.abs(motionEvent.getX() - dragLastX);
+            float dy = Math.abs(motionEvent.getY() - dragLastY);
+            if (dx < 15 && dy < 15) {
+                org.oscim.core.GeoPoint gp = mapView.map().viewport().fromScreenPoint(motionEvent.getX(), motionEvent.getY());
+                if (gp != null) {
+                    cameraUpdateListener.onMapClick(GmsMapsTypeHelper.toLatLng(gp));
+                }
+            }
+        }
         if (motionEvent.getAction() == MotionEvent.ACTION_MOVE && currentlyDraggedItem != null) {
             Point out = new Point();
             mapView.map().viewport().toScreenPoint(GmsMapsTypeHelper.fromLatLng(currentlyDraggedItem.getPosition()), out);
@@ -338,5 +348,6 @@ public class BackendMap implements ItemizedLayer.OnItemGestureListener<MarkerIte
 
     public interface CameraUpdateListener {
         void onCameraUpdate(CameraPosition cameraPosition);
+        void onMapClick(com.google.android.gms.maps.model.LatLng latLng);
     }
 }

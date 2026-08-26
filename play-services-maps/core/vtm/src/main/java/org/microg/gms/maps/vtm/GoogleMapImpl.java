@@ -85,6 +85,11 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     private IOnMarkerDragListener onMarkerDragListener;
     private IOnCameraChangeListener onCameraChangeListener;
     private IOnMyLocationChangeListener onMyLocationChangeListener;
+    private IOnCameraIdleListener onCameraIdleListener;
+    private IOnCameraMoveListener onCameraMoveListener;
+    private IOnCameraMoveStartedListener onCameraMoveStartedListener;
+    private IOnCameraMoveCanceledListener onCameraMoveCanceledListener;
+    private IOnMapClickListener onMapClickListener;
 
     private Criteria criteria;
     private Location myLocation;
@@ -383,6 +388,31 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
                 Log.w(TAG, e);
             }
         }
+        if (onCameraMoveListener != null) {
+            try {
+                onCameraMoveListener.onCameraMove();
+            } catch (RemoteException e) {
+                Log.w(TAG, e);
+            }
+        }
+        if (onCameraIdleListener != null) {
+            try {
+                onCameraIdleListener.onCameraIdle();
+            } catch (RemoteException e) {
+                Log.w(TAG, e);
+            }
+        }
+    }
+
+    @Override
+    public void onMapClick(com.google.android.gms.maps.model.LatLng latLng) {
+        if (onMapClickListener != null) {
+            try {
+                onMapClickListener.onMapClick(latLng);
+            } catch (RemoteException e) {
+                Log.w(TAG, e);
+            }
+        }
     }
     
     /*
@@ -617,7 +647,8 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
 
     @Override
     public void setOnMapClickListener(IOnMapClickListener listener) throws RemoteException {
-        Log.d(TAG, "setOnMapClickListener: not supported");
+        Log.d(TAG, "setOnMapClickListener: " + listener);
+        this.onMapClickListener = listener;
     }
 
     @Override
@@ -688,26 +719,35 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
 
     @Override
     public void setCameraMoveStartedListener(IOnCameraMoveStartedListener listener) throws RemoteException {
-        Log.d(TAG, "unimplemented Method: setCameraMoveStartedListener");
-
+        this.onCameraMoveStartedListener = listener;
     }
 
     @Override
     public void setCameraMoveListener(IOnCameraMoveListener listener) throws RemoteException {
-        Log.d(TAG, "unimplemented Method: setCameraMoveListener");
-
+        this.onCameraMoveListener = listener;
     }
 
     @Override
     public void setCameraMoveCanceledListener(IOnCameraMoveCanceledListener listener) throws RemoteException {
-        Log.d(TAG, "unimplemented Method: setCameraMoveCanceledListener");
-
+        this.onCameraMoveCanceledListener = listener;
     }
 
     @Override
-    public void setCameraIdleListener(IOnCameraIdleListener listener) throws RemoteException {
-        Log.d(TAG, "unimplemented Method: setCameraIdleListener");
-
+    public void setCameraIdleListener(final IOnCameraIdleListener listener) throws RemoteException {
+        Log.d(TAG, "setCameraIdleListener: " + listener);
+        this.onCameraIdleListener = listener;
+        if (listener != null) {
+            new Handler(Looper.getMainLooper()).post(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        if (onCameraIdleListener != null) {
+                            onCameraIdleListener.onCameraIdle();
+                        }
+                    } catch (Throwable ignored) {}
+                }
+            });
+        }
     }
 
     @Override
