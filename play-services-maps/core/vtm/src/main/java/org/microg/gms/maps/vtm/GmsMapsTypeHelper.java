@@ -26,16 +26,67 @@ import org.oscim.core.GeoPoint;
 import org.oscim.core.MapPosition;
 import org.oscim.core.MercatorProjection;
 
+import java.lang.reflect.Field;
+import java.lang.reflect.Method;
+
 public class GmsMapsTypeHelper {
+    public static double getLat(Object latLng) {
+        if (latLng == null) return 0;
+        try {
+            Field f = latLng.getClass().getField("latitude");
+            return f.getDouble(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            Method m = latLng.getClass().getMethod("getLatitude");
+            return (Double) m.invoke(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            for (Field f : latLng.getClass().getDeclaredFields()) {
+                if (f.getType() == double.class) {
+                    f.setAccessible(true);
+                    return f.getDouble(latLng);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return 0;
+    }
+
+    public static double getLon(Object latLng) {
+        if (latLng == null) return 0;
+        try {
+            Field f = latLng.getClass().getField("longitude");
+            return f.getDouble(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            Method m = latLng.getClass().getMethod("getLongitude");
+            return (Double) m.invoke(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            int count = 0;
+            for (Field f : latLng.getClass().getDeclaredFields()) {
+                if (f.getType() == double.class) {
+                    count++;
+                    if (count == 2) {
+                        f.setAccessible(true);
+                        return f.getDouble(latLng);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return 0;
+    }
+
     public static android.graphics.Point toPoint(org.oscim.core.Point in) {
         return new android.graphics.Point((int) in.getX(), (int) in.getY());
     }
 
     public static GeoPoint fromLatLng(LatLng latLng) {
-        return new GeoPoint(latLng.latitude, latLng.longitude);
+        if (latLng == null) return new GeoPoint(0, 0);
+        return new GeoPoint(getLat(latLng), getLon(latLng));
     }
 
     public static LatLng toLatLng(GeoPoint geoPoint) {
+        if (geoPoint == null) return new LatLng(0, 0);
         return new LatLng(geoPoint.getLatitude(), geoPoint.getLongitude());
     }
 
@@ -60,16 +111,19 @@ public class GmsMapsTypeHelper {
     }
 
     public static MapPosition fromCameraPosition(CameraPosition cameraPosition) {
-        MapPosition mapPosition = new MapPosition(cameraPosition.target.latitude,
-                cameraPosition.target.longitude, fromZoom(cameraPosition.zoom));
+        if (cameraPosition == null) return new MapPosition();
+        double lat = getLat(cameraPosition.target);
+        double lon = getLon(cameraPosition.target);
+        MapPosition mapPosition = new MapPosition(lat, lon, fromZoom(cameraPosition.zoom));
         mapPosition.setTilt(cameraPosition.tilt);
         mapPosition.setBearing(fromBearing(cameraPosition.bearing));
         return mapPosition;
     }
 
     public static BoundingBox fromLatLngBounds(LatLngBounds bounds) {
-        return new BoundingBox(bounds.southwest.latitude, bounds.southwest.longitude,
-                bounds.northeast.latitude, bounds.northeast.longitude);
+        if (bounds == null) return new BoundingBox(0, 0, 0, 0);
+        return new BoundingBox(getLat(bounds.southwest), getLon(bounds.southwest),
+                getLat(bounds.northeast), getLon(bounds.northeast));
     }
 
     public static float fromBearing(float bearing) {
