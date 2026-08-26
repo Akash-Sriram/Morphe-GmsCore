@@ -24,6 +24,10 @@ import org.oscim.utils.ThreadUtils;
 public class ContainerLayout extends FrameLayout {
     public ContainerLayout(Context context) {
         super(context);
+        setLayoutParams(new android.view.ViewGroup.LayoutParams(
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
+                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        ));
     }
 
     @Override

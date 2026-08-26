@@ -73,7 +73,10 @@ public class BackendMap implements ItemizedLayer.OnItemGestureListener<MarkerIte
         mapView.map().input.bind(this);
         mapView.map().events.bind(this);
         container = new ContainerLayout(context);
-        container.addView(mapView);
+        container.addView(mapView, new android.widget.FrameLayout.LayoutParams(
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT,
+                android.widget.FrameLayout.LayoutParams.MATCH_PARENT
+        ));
     }
 
     public Viewport getViewport() {
