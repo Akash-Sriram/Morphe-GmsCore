@@ -624,6 +624,7 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
             if (locationManager != null) {
                 Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
                 if (last == null) last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                if (last == null) last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
                 return last;
             }
         } catch (Throwable ignored) {}
@@ -827,9 +828,15 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
         backendMap.snapshot(b, callback);
     }
 
+    private int padLeft, padTop, padRight, padBottom;
+
     @Override
     public void setPadding(int left, int top, int right, int bottom) throws RemoteException {
-        getView().setPadding(left, top, right, bottom);
+        Log.i(TAG, "setPadding: left=" + left + " top=" + top + " right=" + right + " bottom=" + bottom);
+        this.padLeft = left;
+        this.padTop = top;
+        this.padRight = right;
+        this.padBottom = bottom;
     }
 
     @Override
