@@ -202,10 +202,26 @@ class PhenotypeServiceImpl(val packageName: String?) : IPhenotypeService.Stub() 
             ?: CONFIGURATION_OPTIONS.entries.firstOrNull { (k, _) ->
                 packageName != null && (packageName.endsWith(k) || k.endsWith(packageName.substringAfter("app.morphe.").substringAfter("app.revanced.")))
             }?.value
-        return if (flags != null) {
+        val mappedFlags = if (flags != null && packageName != null && packageName != "com.google.android.apps.photos") {
+            flags.map { flag ->
+                if (flag.dataType == Flag.DATA_TYPE_STRING) {
+                    val str = runCatching { flag.string }.getOrNull()
+                    if (str?.contains("com.google.android.apps.photos") == true) {
+                        Flag(flag.name, str.replace("com.google.android.apps.photos", packageName), flag.flagType)
+                    } else {
+                        flag
+                    }
+                } else {
+                    flag
+                }
+            }.toTypedArray()
+        } else {
+            flags
+        }
+        return if (mappedFlags != null) {
             configurationsResult(arrayOf(Configuration().apply {
                 id = 0
-                this.flags = flags
+                this.flags = mappedFlags
                 removeNames = emptyArray()
             }))
         } else {
