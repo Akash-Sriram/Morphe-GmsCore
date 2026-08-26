@@ -266,10 +266,12 @@ public class BackendMapView extends MapView {
     private void initialize() {
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
-        org.oscim.tiling.source.bitmap.BitmapTileSource tileSource = org.oscim.tiling.source.bitmap.BitmapTileSource.builder()
-                .url("https://a.tile.openstreetmap.fr/hot")
-                .tilePath("/{Z}/{X}/{Y}.png")
-                .build();
+        org.oscim.tiling.source.bitmap.BitmapTileSource tileSource = new org.oscim.tiling.source.bitmap.BitmapTileSource(
+                "https://a.tile.openstreetmap.fr/hot",
+                "/{Z}/{X}/{Y}.png",
+                0,
+                19
+        );
         tileSource.setCache(cache);
         tileSource.setHttpEngine(new StandardHttpEngineFactory());
         org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
