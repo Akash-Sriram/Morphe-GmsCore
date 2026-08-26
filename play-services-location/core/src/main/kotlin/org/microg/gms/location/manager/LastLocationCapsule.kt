@@ -38,10 +38,13 @@ class LastLocationCapsule(private val context: Context) {
         get() = context.getFileStreamPath(FILE_NAME)
 
     fun getLocation(effectiveGranularity: @Granularity Int, maxUpdateAgeMillis: Long = Long.MAX_VALUE): Location? {
+        if (lastFineLocation == null && lastCoarseLocation == null) {
+            fetchFromSystem()
+        }
         val location = when (effectiveGranularity) {
-            GRANULARITY_COARSE -> lastCoarseLocationTimeCoarsed
-            GRANULARITY_FINE -> lastCoarseLocation
-            else -> return null
+            GRANULARITY_COARSE -> lastCoarseLocationTimeCoarsed ?: lastCoarseLocation ?: lastFineLocation
+            GRANULARITY_FINE -> lastFineLocation ?: lastCoarseLocation ?: lastFineLocationTimeCoarsed ?: lastCoarseLocationTimeCoarsed
+            else -> lastFineLocation ?: lastCoarseLocation
         } ?: return null
         val cliff = if (effectiveGranularity == GRANULARITY_COARSE) max(maxUpdateAgeMillis, TIME_COARSE_CLIFF) else maxUpdateAgeMillis
         val elapsedRealtimeDiff = SystemClock.elapsedRealtime() - location.elapsedMillis
@@ -123,10 +126,13 @@ class LastLocationCapsule(private val context: Context) {
     fun fetchFromSystem() {
         val locationManager = context.getSystemService<LocationManager>() ?: return
         try {
-            locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER)?.let { updateCoarseLocation(it) }
-            locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER)?.let { updateFineLocation(it) }
-        } catch (e: SecurityException) {
-            // Ignore
+            for (provider in locationManager.allProviders) {
+                try {
+                    locationManager.getLastKnownLocation(provider)?.let { updateFineLocation(it) }
+                } catch (e: Throwable) {
+                }
+            }
+        } catch (e: Throwable) {
         }
     }
 

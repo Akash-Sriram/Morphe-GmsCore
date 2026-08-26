@@ -152,16 +152,31 @@ fun Context.finishAppOpForEffectiveGranularity(clientIdentity: ClientIdentity, e
     }
 }
 
+private fun Context.getRealPackageName(clientIdentity: ClientIdentity): String {
+    try {
+        val pkgs = packageManager.getPackagesForUid(clientIdentity.uid)
+        if (pkgs != null && pkgs.isNotEmpty()) {
+            for (p in pkgs) {
+                if (p == clientIdentity.packageName) return p
+            }
+            return pkgs[0]
+        }
+    } catch (e: Throwable) {
+    }
+    return clientIdentity.packageName
+}
+
 private fun Context.checkAppOp(
     op: String,
     clientIdentity: ClientIdentity
 ) = try {
+    val pkg = getRealPackageName(clientIdentity)
     if (SDK_INT >= 29) {
-        getSystemService<AppOpsManager>()?.unsafeCheckOpNoThrow(op, clientIdentity.uid, clientIdentity.packageName) == AppOpsManager.MODE_ALLOWED
+        getSystemService<AppOpsManager>()?.unsafeCheckOpNoThrow(op, clientIdentity.uid, pkg) == AppOpsManager.MODE_ALLOWED
     } else {
-        getSystemService<AppOpsManager>()?.checkOpNoThrow(op, clientIdentity.uid, clientIdentity.packageName) == AppOpsManager.MODE_ALLOWED
+        getSystemService<AppOpsManager>()?.checkOpNoThrow(op, clientIdentity.uid, pkg) == AppOpsManager.MODE_ALLOWED
     }
-} catch (e: SecurityException) {
+} catch (e: Throwable) {
     true
 }
 
@@ -176,17 +191,14 @@ fun Context.startAppOp(
     clientIdentity: ClientIdentity,
     message: String? = null
 ) = try {
+    val pkg = getRealPackageName(clientIdentity)
     if (SDK_INT >= 30 && clientIdentity.attributionTag != null) {
-        getSystemService<AppOpsManager>()?.startOpNoThrow(op, clientIdentity.uid, clientIdentity.packageName, clientIdentity.attributionTag!!, message)
+        getSystemService<AppOpsManager>()?.startOpNoThrow(op, clientIdentity.uid, pkg, clientIdentity.attributionTag!!, message)
     } else {
-        getSystemService<AppOpsManager>()?.startOpNoThrow(op, clientIdentity.uid, clientIdentity.packageName)
+        getSystemService<AppOpsManager>()?.startOpNoThrow(op, clientIdentity.uid, pkg)
     }
-} catch (e: SecurityException) {
-    if (SDK_INT >= 31) {
-        getSystemService<AppOpsManager>()?.startProxyOpNoThrow(op, clientIdentity.uid, clientIdentity.packageName, clientIdentity.attributionTag, message)
-    } else {
-        AppOpsManager.MODE_ALLOWED
-    }
+} catch (e: Throwable) {
+    AppOpsManager.MODE_ALLOWED
 } == AppOpsManager.MODE_ALLOWED
 
 fun Context.finishAppOps(
@@ -199,15 +211,13 @@ fun Context.finishAppOp(
     clientIdentity: ClientIdentity
 ) {
     try {
+        val pkg = getRealPackageName(clientIdentity)
         if (SDK_INT >= 30 && clientIdentity.attributionTag != null) {
-            getSystemService<AppOpsManager>()?.finishOp(op, clientIdentity.uid, clientIdentity.packageName, clientIdentity.attributionTag!!)
+            getSystemService<AppOpsManager>()?.finishOp(op, clientIdentity.uid, pkg, clientIdentity.attributionTag!!)
         } else {
-            getSystemService<AppOpsManager>()?.finishOp(op, clientIdentity.uid, clientIdentity.packageName)
+            getSystemService<AppOpsManager>()?.finishOp(op, clientIdentity.uid, pkg)
         }
-    } catch (e: SecurityException) {
-        if (SDK_INT >= 31) {
-            getSystemService<AppOpsManager>()?.finishProxyOp(op, clientIdentity.uid, clientIdentity.packageName, clientIdentity.attributionTag)
-        }
+    } catch (e: Throwable) {
     }
 }
 
@@ -216,19 +226,13 @@ private fun Context.noteAppOp(
     clientIdentity: ClientIdentity,
     message: String? = null
 ) = try {
+    val pkg = getRealPackageName(clientIdentity)
     if (SDK_INT >= 30) {
         getSystemService<AppOpsManager>()
-            ?.noteOpNoThrow(op, clientIdentity.uid, clientIdentity.packageName, clientIdentity.attributionTag, message) == AppOpsManager.MODE_ALLOWED
+            ?.noteOpNoThrow(op, clientIdentity.uid, pkg, clientIdentity.attributionTag, message) == AppOpsManager.MODE_ALLOWED
     } else {
-        AppOpsManagerCompat.noteOpNoThrow(this, op, clientIdentity.uid, clientIdentity.packageName) == AppOpsManager.MODE_ALLOWED
+        AppOpsManagerCompat.noteOpNoThrow(this, op, clientIdentity.uid, pkg) == AppOpsManager.MODE_ALLOWED
     }
-} catch (e: SecurityException) {
-    if (Binder.getCallingUid() == clientIdentity.uid) {
-        AppOpsManagerCompat.noteProxyOpNoThrow(this, op, clientIdentity.packageName) == AppOpsManager.MODE_ALLOWED
-    } else if (SDK_INT >= 29) {
-        getSystemService<AppOpsManager>()
-            ?.noteProxyOpNoThrow(op, clientIdentity.packageName, clientIdentity.uid) == AppOpsManager.MODE_ALLOWED
-    } else {
-        true
-    }
+} catch (e: Throwable) {
+    true
 }
