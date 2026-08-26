@@ -27,7 +27,21 @@ public enum MicrogThemes implements ThemeFile {
 
     @Override
     public InputStream getRenderThemeAsStream() {
-        return AssetAdapter.readFileAsStream(mPath);
+        InputStream is = null;
+        try {
+            is = AssetAdapter.readFileAsStream(mPath);
+        } catch (Throwable ignored) {}
+        if (is == null) {
+            try {
+                is = getClass().getClassLoader().getResourceAsStream("assets/" + mPath);
+            } catch (Throwable ignored) {}
+        }
+        if (is == null) {
+            try {
+                is = getClass().getClassLoader().getResourceAsStream(mPath);
+            } catch (Throwable ignored) {}
+        }
+        return is;
     }
 
     @Override
