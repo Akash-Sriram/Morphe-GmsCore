@@ -53,6 +53,21 @@ public class DynamiteContext extends ContextWrapper {
         return appContext;
     }
 
+    @Override
+    public android.content.res.Resources getResources() {
+        return gmsContext != null ? gmsContext.getResources() : super.getResources();
+    }
+
+    @Override
+    public android.content.res.AssetManager getAssets() {
+        return gmsContext != null ? gmsContext.getAssets() : super.getAssets();
+    }
+
+    @Override
+    public android.content.res.Resources.Theme getTheme() {
+        return gmsContext != null ? gmsContext.getTheme() : super.getTheme();
+    }
+
     @RequiresApi(24)
     @Override
     public Context createDeviceProtectedStorageContext() {

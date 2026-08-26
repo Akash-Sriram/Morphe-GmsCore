@@ -27,7 +27,7 @@ public class ResourcesContainer {
 
     public static Resources get() {
         if (resources == null) {
-            throw new IllegalStateException("Resources have not been initialized");
+            return Resources.getSystem();
         } else {
             return resources;
         }

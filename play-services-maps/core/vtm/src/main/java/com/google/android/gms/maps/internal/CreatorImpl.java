@@ -70,7 +70,12 @@ public class CreatorImpl extends ICreator.Stub {
 
     @Override
     public void initV2(IObjectWrapper resources, int flags) throws RemoteException {
-        ResourcesContainer.set((Resources) ObjectWrapper.unwrap(resources));
+        Object obj = ObjectWrapper.unwrap(resources);
+        if (obj instanceof Resources) {
+            ResourcesContainer.set((Resources) obj);
+        } else if (obj instanceof Context) {
+            ResourcesContainer.set(((Context) obj).getResources());
+        }
     }
 
     @Override
