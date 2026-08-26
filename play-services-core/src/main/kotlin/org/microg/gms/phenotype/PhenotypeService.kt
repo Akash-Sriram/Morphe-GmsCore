@@ -197,26 +197,30 @@ class PhenotypeServiceImpl(val packageName: String?) : IPhenotypeService.Stub() 
         callbacks.onFlag(Status.SUCCESS, null)
     }
 
-    override fun getCommitedConfiguration(callbacks: IPhenotypeCallbacks, packageName: String?) {
-        Log.d(TAG, "getCommitedConfiguration($packageName)")
-        callbacks.onCommittedConfiguration(Status.SUCCESS, configurationsResult())
-    }
-
-    override fun getConfigurationSnapshotWithToken(callbacks: IPhenotypeCallbacks, packageName: String?, user: String?, p3: String?) {
-        Log.d(TAG, "getConfigurationSnapshotWithToken($packageName, $user, $p3)")
+    private fun getConfigurationsForPackage(packageName: String?): Configurations {
         val flags = CONFIGURATION_OPTIONS[packageName]
             ?: CONFIGURATION_OPTIONS.entries.firstOrNull { (k, _) ->
                 packageName != null && (packageName.endsWith(k) || k.endsWith(packageName.substringAfter("app.morphe.").substringAfter("app.revanced.")))
             }?.value
-        if (flags != null) {
-            callbacks.onConfiguration(Status.SUCCESS, configurationsResult(arrayOf(Configuration().apply {
+        return if (flags != null) {
+            configurationsResult(arrayOf(Configuration().apply {
                 id = 0
                 this.flags = flags
                 removeNames = emptyArray()
-            })))
+            }))
         } else {
-            callbacks.onConfiguration(Status.SUCCESS, configurationsResult())
+            configurationsResult()
         }
+    }
+
+    override fun getCommitedConfiguration(callbacks: IPhenotypeCallbacks, packageName: String?) {
+        Log.d(TAG, "getCommitedConfiguration($packageName)")
+        callbacks.onCommittedConfiguration(Status.SUCCESS, getConfigurationsForPackage(packageName))
+    }
+
+    override fun getConfigurationSnapshotWithToken(callbacks: IPhenotypeCallbacks, packageName: String?, user: String?, p3: String?) {
+        Log.d(TAG, "getConfigurationSnapshotWithToken($packageName, $user, $p3)")
+        callbacks.onConfiguration(Status.SUCCESS, getConfigurationsForPackage(packageName))
     }
 
     override fun syncAfterOperation(callbacks: IPhenotypeCallbacks, packageName: String?, version: Long) {
@@ -226,7 +230,7 @@ class PhenotypeServiceImpl(val packageName: String?) : IPhenotypeService.Stub() 
 
     override fun registerSync(callbacks: IPhenotypeCallbacks, packageName: String?, version: Int, p3: Array<out String>?, p4: ByteArray?, p5: String?, p6: String?) {
         Log.d(TAG, "registerSync($packageName, $version, $p3, $p4, $p5, $p6)")
-        callbacks.onConfiguration(Status.SUCCESS, configurationsResult())
+        callbacks.onConfiguration(Status.SUCCESS, getConfigurationsForPackage(packageName))
     }
 
     override fun setFlagOverrides(callbacks: IPhenotypeCallbacks, packageName: String?, user: String?, flagName: String?, flagType: Int, flagDataType: Int, flagValue: String?) {
