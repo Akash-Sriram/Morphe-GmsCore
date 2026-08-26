@@ -174,8 +174,21 @@ android {
         disable 'FlowOperatorInvokedInComposition', 'CoroutineCreationDuringComposition', 'StateFlowValueCalledInComposition'
     }
 
+    signingConfigs {
+        defaultConfig {
+            storeFile rootProject.file('keystore.jks')
+            storePassword 'android'
+            keyAlias 'morphe'
+            keyPassword 'android'
+        }
+    }
+
     buildTypes {
+        debug {
+            signingConfig signingConfigs.defaultConfig
+        }
         release {
+            signingConfig signingConfigs.defaultConfig
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
