@@ -190,10 +190,13 @@ public class BackendMapView extends MapView {
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
         org.oscim.tiling.source.bitmap.BitmapTileSource tileSource = org.oscim.tiling.source.bitmap.BitmapTileSource.builder()
-                .url("https://tile.openstreetmap.org")
+                .url("https://a.tile.openstreetmap.fr/hot")
                 .tilePath("/{Z}/{X}/{Y}.png")
                 .build();
         tileSource.setCache(cache);
+        try {
+            tileSource.setHttpRequestHeaders(java.util.Collections.singletonMap("User-Agent", "MorphePhotos/1.0 (Android; Map)"));
+        } catch (Throwable ignored) {}
         org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
         map().setBaseMap(baseLayer);
         Layers layers = map().layers();
