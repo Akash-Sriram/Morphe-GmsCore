@@ -16,6 +16,7 @@ import android.os.Bundle
 import android.util.Log
 import androidx.core.os.bundleOf
 import org.microg.gms.DummyService
+import org.microg.gms.common.Constants
 import org.microg.gms.common.GmsService
 import org.microg.gms.common.RemoteListenerProxy
 
@@ -59,6 +60,11 @@ class ServiceProvider : ContentProvider() {
     override fun query(uri: Uri, projection: Array<out String>?, selection: String?, selectionArgs: Array<out String>?, sortOrder: String?): Cursor? {
         val cursor = MatrixCursor(COLUMNS)
         Log.d(TAG, "query: $uri")
+        val ctx = context
+        if (ctx != null) {
+            val apkPath = ctx.packageResourcePath
+            cursor.addRow(arrayOf(Constants.GMS_VERSION_CODE, apkPath, apkPath, ""))
+        }
         return cursor
     }
 
