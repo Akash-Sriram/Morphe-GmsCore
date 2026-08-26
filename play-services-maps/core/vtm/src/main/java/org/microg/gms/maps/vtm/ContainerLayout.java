@@ -49,22 +49,27 @@ public class ContainerLayout extends FrameLayout {
         int h = getMeasuredHeight();
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
-            child.measure(
-                    MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
-                    MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
-            );
+            if (child instanceof BackendMapView) {
+                child.measure(
+                        MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
+                        MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
+                );
+            }
         }
         android.util.Log.i("GmsContainer", "ContainerLayout measured: " + w + "x" + h);
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
+        super.onLayout(changed, left, top, right, bottom);
         ThreadUtils.init();
         int width = right - left;
         int height = bottom - top;
         for (int i = 0; i < getChildCount(); i++) {
             View child = getChildAt(i);
-            child.layout(0, 0, width, height);
+            if (child instanceof BackendMapView) {
+                child.layout(0, 0, width, height);
+            }
         }
         android.util.Log.i("GmsContainer", "ContainerLayout onLayout: " + width + "x" + height);
     }

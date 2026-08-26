@@ -28,7 +28,10 @@ import android.os.Looper;
 import android.os.Parcel;
 import android.os.RemoteException;
 import android.util.Log;
+import android.view.Gravity;
 import android.view.View;
+import android.view.ViewGroup;
+import android.widget.FrameLayout;
 
 import androidx.core.content.ContextCompat;
 
@@ -53,11 +56,14 @@ import com.google.android.gms.maps.model.internal.IPolylineDelegate;
 import com.google.android.gms.maps.model.internal.ITileOverlayDelegate;
 
 import org.microg.gms.maps.vtm.camera.CameraUpdate;
+import org.microg.gms.maps.vtm.camera.CameraUpdateFactoryImpl;
 import org.microg.gms.maps.vtm.camera.MapPositionCameraUpdate;
 import org.microg.gms.maps.vtm.markup.CircleImpl;
 import org.microg.gms.maps.vtm.markup.GroundOverlayImpl;
 import org.microg.gms.maps.vtm.markup.MarkerImpl;
 import org.microg.gms.maps.vtm.markup.Markup;
+import org.oscim.core.MapPosition;
+import org.oscim.map.Map;
 import org.microg.gms.maps.vtm.markup.PolygonImpl;
 import org.microg.gms.maps.vtm.markup.PolylineImpl;
 import org.microg.gms.maps.vtm.markup.TileOverlayImpl;
@@ -365,17 +371,41 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     }
 
     @Override
-    public void animateCameraWithCallback(IObjectWrapper cameraUpdate, ICancelableCallback callback)
+    public void animateCameraWithCallback(IObjectWrapper cameraUpdate, final ICancelableCallback callback)
             throws RemoteException {
         CameraUpdate camUpdate = (CameraUpdate) ObjectWrapper.unwrap(cameraUpdate);
         backendMap.applyCameraUpdateAnimated(camUpdate, 1000);
+        if (callback != null) {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        callback.onFinish();
+                    } catch (RemoteException e) {
+                        Log.w(TAG, e);
+                    }
+                }
+            }, 1000);
+        }
     }
 
     @Override
     public void animateCameraWithDurationAndCallback(IObjectWrapper cameraUpdate, int duration,
-                                                     ICancelableCallback callback) throws RemoteException {
+                                                     final ICancelableCallback callback) throws RemoteException {
         CameraUpdate camUpdate = (CameraUpdate) ObjectWrapper.unwrap(cameraUpdate);
         backendMap.applyCameraUpdateAnimated(camUpdate, duration);
+        if (callback != null) {
+            new Handler(Looper.getMainLooper()).postDelayed(new Runnable() {
+                @Override
+                public void run() {
+                    try {
+                        callback.onFinish();
+                    } catch (RemoteException e) {
+                        Log.w(TAG, e);
+                    }
+                }
+            }, duration);
+        }
     }
 
     @Override
@@ -675,9 +705,7 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
         if (settings.isCompassEnabled()) {
             Log.w(TAG, "Compass not yet supported");
         }
-        if (settings.isMyLocationButtonEnabled()) {
-            Log.w(TAG, "MyLocationButton not yet supported");
-        }
+        updateMyLocationButton(settings.isMyLocationButtonEnabled());
         if (settings.isZoomControlsEnabled()) {
             Log.w(TAG, "ZoomControls not yet supported");
         }
@@ -685,6 +713,80 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
         backendMap.setRotateGesturesEnabled(settings.isRotateGesturesEnabled());
         backendMap.setTiltGesturesEnabled(settings.isTiltGesturesEnabled());
         backendMap.setZoomGesturesEnabled(settings.isZoomGesturesEnabled());
+    }
+
+    private android.widget.ImageView myLocationButton;
+
+    private void updateMyLocationButton(final boolean enabled) {
+        new Handler(Looper.getMainLooper()).post(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    ViewGroup container = (ViewGroup) backendMap.getView();
+                    if (container == null) return;
+                    if (!enabled) {
+                        if (myLocationButton != null) myLocationButton.setVisibility(View.GONE);
+                        return;
+                    }
+                    if (myLocationButton == null) {
+                        myLocationButton = new android.widget.ImageView(context);
+                        android.graphics.drawable.GradientDrawable bg = new android.graphics.drawable.GradientDrawable();
+                        bg.setShape(android.graphics.drawable.GradientDrawable.OVAL);
+                        bg.setColor(0xFFFFFFFF);
+                        bg.setStroke(2, 0xFFE0E0E0);
+                        myLocationButton.setBackground(bg);
+                        myLocationButton.setElevation(8f);
+                        myLocationButton.setImageResource(android.R.drawable.ic_menu_mylocation);
+                        myLocationButton.setColorFilter(0xFF1A73E8);
+                        myLocationButton.setPadding(24, 24, 24, 24);
+
+                        FrameLayout.LayoutParams lp = new FrameLayout.LayoutParams(140, 140);
+                        lp.gravity = Gravity.TOP | Gravity.END;
+                        lp.topMargin = 40;
+                        lp.rightMargin = 40;
+                        myLocationButton.setLayoutParams(lp);
+
+                        myLocationButton.setOnClickListener(new View.OnClickListener() {
+                            @Override
+                            public void onClick(View v) {
+                                onMyLocationButtonClicked();
+                            }
+                        });
+                        container.addView(myLocationButton);
+                    }
+                    myLocationButton.setVisibility(View.VISIBLE);
+                } catch (Throwable t) {
+                    Log.w(TAG, "updateMyLocationButton error", t);
+                }
+            }
+        });
+    }
+
+    public void onMyLocationButtonClicked() {
+        Log.i(TAG, "onMyLocationButtonClicked");
+        try {
+            if (onMyLocationButtonClickListener != null) {
+                if (onMyLocationButtonClickListener.onMyLocationButtonClick()) {
+                    return;
+                }
+            }
+        } catch (RemoteException e) {
+            Log.w(TAG, e);
+        }
+        try {
+            Location loc = getMyLocation();
+            if (loc != null) {
+                CameraUpdate update = (CameraUpdate) ObjectWrapper.unwrap(
+                    CameraUpdateFactoryImpl.get().newLatLngZoom(
+                        new com.google.android.gms.maps.model.LatLng(loc.getLatitude(), loc.getLongitude()),
+                        15f
+                    )
+                );
+                backendMap.applyCameraUpdateAnimated(update, 800);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "Error in onMyLocationButtonClicked", t);
+        }
     }
     
     /*
@@ -858,9 +960,33 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
         this.padBottom = bottom;
     }
 
+    private ILocationSourceDelegate locationSource;
+    private com.google.android.gms.maps.internal.IOnLocationChangeListener locationSourceListener = new com.google.android.gms.maps.internal.IOnLocationChangeListener.Stub() {
+        @Override
+        public void onLocationChanged(Location location) throws RemoteException {
+            Log.d(TAG, "LocationSource onLocationChanged: " + location);
+            listener.onLocationChanged(location);
+        }
+    };
+
     @Override
     public void setLocationSource(ILocationSourceDelegate locationSource) throws RemoteException {
-        Log.d(TAG, "setLocationSource: " + locationSource);
+        Log.i(TAG, "setLocationSource: " + locationSource);
+        if (this.locationSource != null) {
+            try {
+                this.locationSource.deactivate();
+            } catch (Throwable t) {
+                Log.w(TAG, t);
+            }
+        }
+        this.locationSource = locationSource;
+        if (locationSource != null) {
+            try {
+                locationSource.activate(locationSourceListener);
+            } catch (Throwable t) {
+                Log.w(TAG, "Failed to activate locationSource", t);
+            }
+        }
     }
 
     @Override
