@@ -29,6 +29,7 @@ import org.microg.gms.maps.vtm.R;
 import org.oscim.android.AndroidAssets;
 import org.oscim.android.MapView;
 import org.oscim.android.canvas.AndroidBitmap;
+import org.oscim.backend.AssetAdapter;
 import org.oscim.layers.marker.ItemizedLayer;
 import org.oscim.layers.marker.MarkerItem;
 import org.oscim.layers.marker.MarkerSymbol;
@@ -114,12 +115,51 @@ public class BackendMapView extends MapView {
         super.onPause();
     }
 
+    private static class CustomAssetAdapter extends org.oscim.backend.AssetAdapter {
+        private final Context context;
+        private final ClassLoader classLoader;
+
+        public CustomAssetAdapter(Context context) {
+            this.context = context;
+            this.classLoader = BackendMapView.class.getClassLoader();
+        }
+
+    @Override
+    public InputStream openFileAsStream(String path) {
+        if (context != null && context.getAssets() != null) {
+            try {
+                return context.getAssets().open(path);
+            } catch (Throwable ignored) {}
+        }
+        if (classLoader != null) {
+            try {
+                InputStream is = classLoader.getResourceAsStream("assets/" + path);
+                if (is != null) return is;
+            } catch (Throwable ignored) {}
+            try {
+                InputStream is = classLoader.getResourceAsStream(path);
+                if (is != null) return is;
+            } catch (Throwable ignored) {}
+        }
+        try {
+            ClassLoader cl = Thread.currentThread().getContextClassLoader();
+            if (cl != null) {
+                InputStream is = cl.getResourceAsStream("assets/" + path);
+                if (is != null) return is;
+                is = cl.getResourceAsStream(path);
+                if (is != null) return is;
+            }
+        } catch (Throwable ignored) {}
+        return null;
+    }
+}
+
     public BackendMapView(Context context) {
         super(loadNativeLib(context));
         try {
-            AndroidAssets.init(context);
+            AssetAdapter.init(new CustomAssetAdapter(context));
         } catch (Throwable t) {
-            Log.w(TAG, "AndroidAssets.init failed", t);
+            Log.w(TAG, "AssetAdapter.init failed", t);
         }
         initialize();
     }
@@ -127,9 +167,9 @@ public class BackendMapView extends MapView {
     public BackendMapView(Context context, AttributeSet attributeSet) {
         super(loadNativeLib(context), attributeSet);
         try {
-            AndroidAssets.init(context);
+            AssetAdapter.init(new CustomAssetAdapter(context));
         } catch (Throwable t) {
-            Log.w(TAG, "AndroidAssets.init failed", t);
+            Log.w(TAG, "AssetAdapter.init failed", t);
         }
         initialize();
     }
