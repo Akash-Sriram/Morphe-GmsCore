@@ -90,6 +90,7 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     private IOnCameraMoveStartedListener onCameraMoveStartedListener;
     private IOnCameraMoveCanceledListener onCameraMoveCanceledListener;
     private IOnMapClickListener onMapClickListener;
+    private IOnMyLocationButtonClickListener onMyLocationButtonClickListener;
 
     private Criteria criteria;
     private Location myLocation;
@@ -577,25 +578,56 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
         Log.w(TAG, "Indoor not yet supported");
     }
 
+    private boolean myLocationEnabled = false;
+
     @Override
     public boolean isMyLocationEnabled() throws RemoteException {
-        return false;
+        return myLocationEnabled;
     }
 
     @Override
     public void setMyLocationEnabled(boolean myLocation) throws RemoteException {
-        Log.w(TAG, "MyLocation not yet supported");
-        boolean hasPermission = ContextCompat.checkSelfPermission(context, ACCESS_COARSE_LOCATION) == PERMISSION_GRANTED
-                || ContextCompat.checkSelfPermission(context, ACCESS_FINE_LOCATION) == PERMISSION_GRANTED;
-        if (!hasPermission) {
-            throw new SecurityException("Neither " + ACCESS_COARSE_LOCATION + " nor " + ACCESS_FINE_LOCATION + " granted.");
+        this.myLocationEnabled = myLocation;
+        Log.i(TAG, "setMyLocationEnabled: " + myLocation);
+        try {
+            LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            if (myLocation && locationManager != null) {
+                try {
+                    Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                    if (last == null) last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                    if (last != null) {
+                        this.myLocation = last;
+                        if (onMyLocationChangeListener != null) {
+                            onMyLocationChangeListener.onMyLocationChanged(ObjectWrapper.wrap(last));
+                        }
+                    }
+                    if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
+                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, listener, Looper.getMainLooper());
+                    }
+                    if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
+                        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, listener, Looper.getMainLooper());
+                    }
+                } catch (SecurityException ignored) {}
+            } else if (locationManager != null) {
+                locationManager.removeUpdates(listener);
+            }
+        } catch (Throwable t) {
+            Log.w(TAG, "setMyLocationEnabled error", t);
         }
-        LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
-        if (myLocation) {
-            locationManager.requestLocationUpdates(5000, 10, criteria, listener, Looper.getMainLooper());
-        } else {
-            locationManager.removeUpdates(listener);
-        }
+    }
+
+    @Override
+    public Location getMyLocation() throws RemoteException {
+        if (myLocation != null) return myLocation;
+        try {
+            LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
+            if (locationManager != null) {
+                Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
+                if (last == null) last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
+                return last;
+            }
+        } catch (Throwable ignored) {}
+        return null;
     }
 
     @Override
@@ -684,7 +716,8 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     @Override
     public void setOnMyLocationButtonClickListener(IOnMyLocationButtonClickListener listener)
             throws RemoteException {
-        Log.d(TAG, "setOnMyLocationButtonClickListener: not supported");
+        Log.i(TAG, "setOnMyLocationButtonClickListener: " + listener);
+        this.onMyLocationButtonClickListener = listener;
     }
 
     @Override
@@ -797,11 +830,6 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     @Override
     public void setPadding(int left, int top, int right, int bottom) throws RemoteException {
         getView().setPadding(left, top, right, bottom);
-    }
-
-    @Override
-    public Location getMyLocation() throws RemoteException {
-        return myLocation;
     }
 
     @Override

@@ -31,8 +31,15 @@ public class ContainerLayout extends FrameLayout {
     }
 
     @Override
+    protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
+        super.onMeasure(widthMeasureSpec, heightMeasureSpec);
+        android.util.Log.i("GmsContainer", "ContainerLayout measured: " + getMeasuredWidth() + "x" + getMeasuredHeight());
+    }
+
+    @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         ThreadUtils.init();
         super.onLayout(changed, left, top, right, bottom);
+        android.util.Log.i("GmsContainer", "ContainerLayout onLayout: " + (right - left) + "x" + (bottom - top));
     }
 }

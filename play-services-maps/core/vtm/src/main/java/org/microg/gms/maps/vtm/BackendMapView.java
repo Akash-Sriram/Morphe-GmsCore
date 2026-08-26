@@ -108,8 +108,9 @@ public class BackendMapView extends MapView {
     @Override
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
-        Log.i("GmsMapView", ">>> onSizeChanged: " + w + "x" + h);
-        if (map() != null) {
+        Log.i(TAG, ">>> onSizeChanged: " + w + "x" + h + " (old: " + oldw + "x" + oldh + ")");
+        if (map() != null && map().viewport() != null) {
+            map().viewport().setScreenSize(w, h);
             map().updateMap(true);
         }
     }
@@ -117,7 +118,7 @@ public class BackendMapView extends MapView {
     @Override
     public void onResume() {
         super.onResume();
-        Log.i("GmsMapView", ">>> onResume MapView");
+        Log.i(TAG, ">>> onResume MapView");
         if (map() != null) {
             map().updateMap(true);
         }
