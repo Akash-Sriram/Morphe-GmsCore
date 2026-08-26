@@ -142,6 +142,19 @@ class LocationManagerInstance(
         val binderIdentity = Binder()
         val job = lifecycleScope.launchWhenStarted {
             try {
+                try {
+                    val last = locationManager.getLastLocation(clientIdentity, LastLocationRequest.Builder().setGranularity(request.granularity).setMaxUpdateAgeMillis(request.maxUpdateAgeMillis).build())
+                    if (last != null) {
+                        Log.i(TAG, "getCurrentLocationWithReceiver returning instant last location: $last")
+                        if (!returned) {
+                            returned = true
+                            callback.onLocationStatus(Status.SUCCESS, last)
+                            return@launchWhenStarted
+                        }
+                    }
+                } catch (e: Exception) {
+                    Log.w(TAG, "getLastLocation check in getCurrentLocation error", e)
+                }
                 val scope = this
                 val callbackForRequest = object : ILocationCallback.Stub() {
                     override fun onLocationResult(result: LocationResult?) {
