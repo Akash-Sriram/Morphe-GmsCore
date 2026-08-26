@@ -189,15 +189,16 @@ public class BackendMapView extends MapView {
     private void initialize() {
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
-        OSciMap4TileSource tileSource = new OSciMap4TileSource();
+        org.oscim.tiling.source.bitmap.BitmapTileSource tileSource = org.oscim.tiling.source.bitmap.BitmapTileSource.builder()
+                .url("https://tile.openstreetmap.org")
+                .tilePath("/{Z}/{X}/{Y}.png")
+                .build();
         tileSource.setCache(cache);
-        VectorTileLayer baseLayer = map().setBaseMap(tileSource);
+        org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
+        map().setBaseMap(baseLayer);
         Layers layers = map().layers();
         layers.add(drawables = new ClearableVectorLayer(map()));
-        layers.add(labels = new LabelLayer(map(), baseLayer));
-        layers.add(buildings = new BuildingLayer(map(), baseLayer));
         layers.add(items = new ItemizedLayer<MarkerItem>(map(), new MarkerSymbol(
                 new AndroidBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.nop)), 0.5F, 1)));
-        map().setTheme(MicrogThemes.DEFAULT);
     }
 }
