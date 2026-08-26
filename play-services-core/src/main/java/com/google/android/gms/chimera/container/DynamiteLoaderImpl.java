@@ -88,8 +88,8 @@ public class DynamiteLoaderImpl extends IDynamiteLoader.Stub {
             return 1;
         }
 
-        if (moduleId.equals("com.google.android.gms.maps_dynamite")) {
-            Log.d(TAG, "returning v1 for maps");
+        if (moduleId.startsWith("com.google.android.gms.maps")) {
+            Log.d(TAG, "returning v1 for maps module: " + moduleId);
             return 1;
         }
 

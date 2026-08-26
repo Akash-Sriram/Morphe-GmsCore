@@ -45,12 +45,19 @@ public class FilteredClassLoader extends ClassLoader {
 
     @Override
     protected Class<?> loadClass(String name, boolean resolve) throws ClassNotFoundException {
-        if (name.startsWith("java.")) return rootClassLoader.loadClass(name);
+        if (name.startsWith("java.") || name.startsWith("android.")) return super.loadClass(name, resolve);
+        if (name.startsWith("com.google.android.gms.maps") || name.startsWith("org.microg.gms.maps")) {
+            return super.loadClass(name, resolve);
+        }
         if (allowedClasses.contains(name) || allowedClasses.contains(getClassName(name)))
             return super.loadClass(name, resolve);
         if (allowedClasses.contains("!" + name) || allowedClasses.contains("!" + getClassName(name)))
             return rootClassLoader.loadClass(name);
         if (allowedPackages.contains(getPackageName(name))) return super.loadClass(name, resolve);
-        return rootClassLoader.loadClass(name);
+        try {
+            return super.loadClass(name, resolve);
+        } catch (ClassNotFoundException e) {
+            return rootClassLoader.loadClass(name);
+        }
     }
 }
