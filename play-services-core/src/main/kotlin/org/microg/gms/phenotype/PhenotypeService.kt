@@ -125,14 +125,7 @@ private val CONFIGURATION_OPTIONS = mapOf(
         Flag("45668769", true, 0),
         Flag("45633067", true, 0),
     ),
-    "com.google.android.apps.photos" to arrayOf(
-        Flag("45617431", true, 0),
-        // Enable v3 movie editor; legacy MovieEditorActivity NPEs on a missing media extra
-        Flag("45410021", true, 0),
-        // Route highlight-video to the Varenyky local renderer
-        Flag("45735699", true, 0),
-        Flag("45709528", true, 0),
-    ),
+    "com.google.android.apps.photos" to OFFICIAL_PHOTOS_FLAGS,
     // Android Auto (Gearhead) — lift Car App Library API max for third-party apps.
     // Without this, AA falls back to baked-in default "DEFAULT:7, gearhead:8" which
     // blocks Spotify / YouTube Music (require minCarAppApiLevel=8).
