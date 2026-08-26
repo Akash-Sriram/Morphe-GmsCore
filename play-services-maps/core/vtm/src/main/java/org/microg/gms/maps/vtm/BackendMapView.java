@@ -124,35 +124,37 @@ public class BackendMapView extends MapView {
             this.classLoader = BackendMapView.class.getClassLoader();
         }
 
-    @Override
-    public InputStream openFileAsStream(String path) {
-        if (context != null && context.getAssets() != null) {
-            try {
-                return context.getAssets().open(path);
-            } catch (Throwable ignored) {}
-        }
-        if (classLoader != null) {
-            try {
-                InputStream is = classLoader.getResourceAsStream("assets/" + path);
-                if (is != null) return is;
-            } catch (Throwable ignored) {}
-            try {
-                InputStream is = classLoader.getResourceAsStream(path);
-                if (is != null) return is;
-            } catch (Throwable ignored) {}
-        }
-        try {
-            ClassLoader cl = Thread.currentThread().getContextClassLoader();
-            if (cl != null) {
-                InputStream is = cl.getResourceAsStream("assets/" + path);
-                if (is != null) return is;
-                is = cl.getResourceAsStream(path);
-                if (is != null) return is;
+        @Override
+        public InputStream openFileAsStream(String path) {
+            InputStream is = null;
+            if (context != null && context.getAssets() != null) {
+                try {
+                    is = context.getAssets().open(path);
+                } catch (Throwable ignored) {}
             }
-        } catch (Throwable ignored) {}
-        return null;
+            if (is == null && classLoader != null) {
+                try {
+                    is = classLoader.getResourceAsStream("assets/" + path);
+                } catch (Throwable ignored) {}
+                if (is == null) {
+                    try {
+                        is = classLoader.getResourceAsStream(path);
+                    } catch (Throwable ignored) {}
+                }
+            }
+            if (is == null) {
+                try {
+                    ClassLoader cl = Thread.currentThread().getContextClassLoader();
+                    if (cl != null) {
+                        is = cl.getResourceAsStream("assets/" + path);
+                        if (is == null) is = cl.getResourceAsStream(path);
+                    }
+                } catch (Throwable ignored) {}
+            }
+            Log.i("GmsMapView", "openFileAsStream: " + path + " -> " + (is != null ? "FOUND" : "NOT_FOUND"));
+            return is;
+        }
     }
-}
 
     public BackendMapView(Context context) {
         super(loadNativeLib(context));
@@ -199,32 +201,39 @@ public class BackendMapView extends MapView {
         @Override
         public void sendRequest(org.oscim.core.Tile tile) throws java.io.IOException {
             String urlString = tileSource.getTileUrl(tile);
-            Log.d("GmsMapView", "Requesting tile: " + urlString);
-            java.net.URL url = new java.net.URL(urlString);
-            connection = (java.net.HttpURLConnection) url.openConnection();
-            connection.setRequestMethod("GET");
-            connection.setConnectTimeout(15000);
-            connection.setReadTimeout(15000);
-            connection.setRequestProperty("User-Agent", "MorphePhotos/1.0 (Android; Map)");
-            int code = connection.getResponseCode();
-            Log.d("GmsMapView", "Tile response code: " + code + " for " + urlString);
-            if (code == 200) {
-                java.io.InputStream raw = connection.getInputStream();
-                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                byte[] buf = new byte[4096];
-                int n;
-                while ((n = raw.read(buf)) != -1) {
-                    baos.write(buf, 0, n);
-                    if (cacheStream != null) {
-                        try {
-                            cacheStream.write(buf, 0, n);
-                        } catch (Throwable ignored) {}
+            Log.i("GmsMapView", ">>> HTTP sendRequest tile: " + urlString);
+            try {
+                java.net.URL url = new java.net.URL(urlString);
+                connection = (java.net.HttpURLConnection) url.openConnection();
+                connection.setRequestMethod("GET");
+                connection.setConnectTimeout(15000);
+                connection.setReadTimeout(15000);
+                connection.setRequestProperty("User-Agent", "MorphePhotos/1.0 (Android; Map)");
+                int code = connection.getResponseCode();
+                Log.i("GmsMapView", ">>> HTTP tile response " + code + " for: " + urlString);
+                if (code == 200) {
+                    java.io.InputStream raw = connection.getInputStream();
+                    java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                    byte[] buf = new byte[4096];
+                    int n;
+                    while ((n = raw.read(buf)) != -1) {
+                        baos.write(buf, 0, n);
+                        if (cacheStream != null) {
+                            try {
+                                cacheStream.write(buf, 0, n);
+                            } catch (Throwable ignored) {}
+                        }
                     }
+                    raw.close();
+                    inputStream = new java.io.ByteArrayInputStream(baos.toByteArray());
+                } else {
+                    Log.e("GmsMapView", "HTTP error " + code + " fetching tile: " + urlString);
+                    throw new java.io.IOException("Tile request HTTP error: " + code);
                 }
-                raw.close();
-                inputStream = new java.io.ByteArrayInputStream(baos.toByteArray());
-            } else {
-                throw new java.io.IOException("Tile request HTTP error: " + code);
+            } catch (Throwable t) {
+                Log.e("GmsMapView", "Exception fetching tile " + urlString, t);
+                if (t instanceof java.io.IOException) throw (java.io.IOException) t;
+                throw new java.io.IOException(t);
             }
         }
 
@@ -264,6 +273,7 @@ public class BackendMapView extends MapView {
     }
 
     private void initialize() {
+        Log.i("GmsMapView", ">>> initialize() starting MapView setup");
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
         org.oscim.tiling.source.bitmap.BitmapTileSource tileSource = new org.oscim.tiling.source.bitmap.BitmapTileSource(
@@ -280,5 +290,7 @@ public class BackendMapView extends MapView {
         layers.add(drawables = new ClearableVectorLayer(map()));
         layers.add(items = new ItemizedLayer<MarkerItem>(map(), new MarkerSymbol(
                 new AndroidBitmap(BitmapFactory.decodeResource(getContext().getResources(), R.drawable.nop)), 0.5F, 1)));
+        map().updateMap(true);
+        Log.i("GmsMapView", ">>> initialize() completed");
     }
 }
