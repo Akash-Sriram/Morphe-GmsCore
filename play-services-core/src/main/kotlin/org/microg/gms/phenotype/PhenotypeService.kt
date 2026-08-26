@@ -211,10 +211,14 @@ class PhenotypeServiceImpl(val packageName: String?) : IPhenotypeService.Stub() 
 
     override fun getConfigurationSnapshotWithToken(callbacks: IPhenotypeCallbacks, packageName: String?, user: String?, p3: String?) {
         Log.d(TAG, "getConfigurationSnapshotWithToken($packageName, $user, $p3)")
-        if (packageName in CONFIGURATION_OPTIONS.keys) {
+        val flags = CONFIGURATION_OPTIONS[packageName]
+            ?: CONFIGURATION_OPTIONS.entries.firstOrNull { (k, _) ->
+                packageName != null && (packageName.endsWith(k) || k.endsWith(packageName.substringAfter("app.morphe.").substringAfter("app.revanced.")))
+            }?.value
+        if (flags != null) {
             callbacks.onConfiguration(Status.SUCCESS, configurationsResult(arrayOf(Configuration().apply {
                 id = 0
-                flags = CONFIGURATION_OPTIONS[packageName]
+                this.flags = flags
                 removeNames = emptyArray()
             })))
         } else {

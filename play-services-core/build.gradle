@@ -126,6 +126,8 @@ android {
     }
 
     defaultConfig {
+        applicationId "${basePackageName}.android.gms"
+
         versionName version
         versionCode appVersionCode
 
@@ -135,9 +137,19 @@ android {
         multiDexEnabled true
         multiDexKeepProguard file('multidex-keep.pro')
 
-        manifestPlaceholders = [appLabel:"@string/gms_app_name"]
-        resValue "string", "package_id", "com.google.android.gms"
+        manifestPlaceholders = [
+            appLabel: "@string/gms_app_name",
+            basePackageName: "$basePackageName"
+        ]
+        resValue "string", "package_id", "${basePackageName}.android.gms"
+        resValue "string", "var_authenticator_account_type", "$basePackageName"
+        resValue "string", "var_contact_syncadapter_account_type", "$basePackageName"
+        resValue "string", "var_pref_auth_action_security_settings", "${basePackageName}.android.gms.accountsettings.SECURITY_SETTINGS"
+        resValue "string", "var_pref_auth_action_privacy_settings", "${basePackageName}.android.gms.accountsettings.PRIVACY_SETTINGS"
+        resValue "string", "var_pref_auth_action_preferences_settings", "${basePackageName}.android.gms.accountsettings.ACCOUNT_PREFERENCES_SETTINGS"
+        resValue "string", "var_pref_start_gms_package", "${basePackageName}.android.gms"
 
+        buildConfigField "String", "BASE_PACKAGE_NAME", "\"$basePackageName\""
         buildConfigField "String", "SAFETYNET_KEY", "\"${localProperties.get("safetynet.key", "")}\""
         buildConfigField "String", "RECAPTCHA_SITE_KEY", "\"${localProperties.get("recaptcha.siteKey", "")}\""
         buildConfigField "String", "RECAPTCHA_SECRET", "\"${localProperties.get("recaptcha.secret", "")}\""

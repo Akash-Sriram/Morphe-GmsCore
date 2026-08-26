@@ -257,9 +257,12 @@ public class PackageUtils {
             }
         }
         if (packageName != null && suggestedPackageName != null && !packageName.equals(suggestedPackageName)) {
-            throw new SecurityException("UID [" + callingUid + "] is not related to packageName [" + suggestedPackageName + "] (seems to be " + packageName + ")");
+            String spoofed = PackageSpoofUtils.spoofPackageName(context.getPackageManager(), packageName);
+            if (spoofed == null || !spoofed.equals(suggestedPackageName)) {
+                throw new SecurityException("UID [" + callingUid + "] is not related to packageName [" + suggestedPackageName + "] (seems to be " + packageName + ")");
+            }
         }
-        return packageName;
+        return PackageSpoofUtils.spoofPackageName(context.getPackageManager(), packageName);
     }
 
     @Nullable

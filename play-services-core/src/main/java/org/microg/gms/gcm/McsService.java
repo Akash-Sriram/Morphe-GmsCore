@@ -85,7 +85,7 @@ import static org.microg.gms.gcm.ExtensionsKt.ACTION_GCM_CONNECTED;
 import static org.microg.gms.gcm.GcmConstants.*;
 import static org.microg.gms.gcm.McsConstants.*;
 
-@ForegroundServiceInfo(value = "Cloud messaging", resName = "service_name_mcs", resPackage = "com.google.android.gms")
+@ForegroundServiceInfo(value = "Cloud messaging", resName = "service_name_mcs")
 public class McsService extends Service implements Handler.Callback {
     private static final String TAG = "GmsGcmMcsSvc";
 
