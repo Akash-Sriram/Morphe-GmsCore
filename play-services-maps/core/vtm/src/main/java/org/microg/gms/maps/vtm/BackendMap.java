@@ -119,10 +119,12 @@ public class BackendMap implements ItemizedLayer.OnItemGestureListener<MarkerIte
 
     public void applyCameraUpdate(CameraUpdate cameraUpdate) {
         cameraUpdate.apply(mapView.map());
+        redraw();
     }
 
     public void applyCameraUpdateAnimated(CameraUpdate cameraUpdate, int durationMs) {
         cameraUpdate.applyAnimated(mapView.map(), durationMs);
+        redraw();
     }
 
     public void stopAnimation() {
