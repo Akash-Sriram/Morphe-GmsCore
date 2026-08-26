@@ -199,15 +199,30 @@ public class BackendMapView extends MapView {
         @Override
         public void sendRequest(org.oscim.core.Tile tile) throws java.io.IOException {
             String urlString = tileSource.getTileUrl(tile);
+            Log.d("GmsMapView", "Requesting tile: " + urlString);
             java.net.URL url = new java.net.URL(urlString);
             connection = (java.net.HttpURLConnection) url.openConnection();
             connection.setRequestMethod("GET");
-            connection.setConnectTimeout(10000);
-            connection.setReadTimeout(10000);
-            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0");
+            connection.setConnectTimeout(15000);
+            connection.setReadTimeout(15000);
+            connection.setRequestProperty("User-Agent", "MorphePhotos/1.0 (Android; Map)");
             int code = connection.getResponseCode();
+            Log.d("GmsMapView", "Tile response code: " + code + " for " + urlString);
             if (code == 200) {
-                inputStream = connection.getInputStream();
+                java.io.InputStream raw = connection.getInputStream();
+                java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                byte[] buf = new byte[4096];
+                int n;
+                while ((n = raw.read(buf)) != -1) {
+                    baos.write(buf, 0, n);
+                    if (cacheStream != null) {
+                        try {
+                            cacheStream.write(buf, 0, n);
+                        } catch (Throwable ignored) {}
+                    }
+                }
+                raw.close();
+                inputStream = new java.io.ByteArrayInputStream(baos.toByteArray());
             } else {
                 throw new java.io.IOException("Tile request HTTP error: " + code);
             }
@@ -225,7 +240,7 @@ public class BackendMapView extends MapView {
                 inputStream = null;
             }
             if (connection != null) {
-                connection.disconnect();
+                try { connection.disconnect(); } catch (Throwable ignored) {}
                 connection = null;
             }
         }
@@ -258,7 +273,7 @@ public class BackendMapView extends MapView {
         tileSource.setCache(cache);
         tileSource.setHttpEngine(new StandardHttpEngineFactory());
         org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
-        map().layers().add(0, baseLayer);
+        map().setBaseMap(baseLayer);
         Layers layers = map().layers();
         layers.add(drawables = new ClearableVectorLayer(map()));
         layers.add(items = new ItemizedLayer<MarkerItem>(map(), new MarkerSymbol(
