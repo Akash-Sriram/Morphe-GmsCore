@@ -33,6 +33,9 @@ import org.oscim.map.Viewport;
 public class ProjectionImpl extends IProjectionDelegate.Stub {
     private static final String TAG = "GmsProjectionImpl";
     private static final String DESCRIPTOR = "com.google.android.gms.maps.internal.IProjectionDelegate";
+    private static final int TRANSACTION_fromScreenLocation = FIRST_CALL_TRANSACTION + 0;
+    private static final int TRANSACTION_toScreenLocation = FIRST_CALL_TRANSACTION + 1;
+    private static final int TRANSACTION_getVisibleRegion = FIRST_CALL_TRANSACTION + 2;
     private Viewport viewport;
     private float[] extents = new float[8];
 
