@@ -186,6 +186,68 @@ public class BackendMapView extends MapView {
         return drawables;
     }
 
+    private static class StandardHttpEngine implements org.oscim.tiling.source.HttpEngine {
+        private final org.oscim.tiling.source.UrlTileSource tileSource;
+        private java.net.HttpURLConnection connection;
+        private java.io.InputStream inputStream;
+        private java.io.OutputStream cacheStream;
+
+        public StandardHttpEngine(org.oscim.tiling.source.UrlTileSource tileSource) {
+            this.tileSource = tileSource;
+        }
+
+        @Override
+        public void sendRequest(org.oscim.core.Tile tile) throws java.io.IOException {
+            String urlString = tileSource.getTileUrl(tile);
+            java.net.URL url = new java.net.URL(urlString);
+            connection = (java.net.HttpURLConnection) url.openConnection();
+            connection.setRequestMethod("GET");
+            connection.setConnectTimeout(10000);
+            connection.setReadTimeout(10000);
+            connection.setRequestProperty("User-Agent", "Mozilla/5.0 (Android; Mobile; rv:120.0) Gecko/120.0 Firefox/120.0");
+            int code = connection.getResponseCode();
+            if (code == 200) {
+                inputStream = connection.getInputStream();
+            } else {
+                throw new java.io.IOException("Tile request HTTP error: " + code);
+            }
+        }
+
+        @Override
+        public java.io.InputStream read() throws java.io.IOException {
+            return inputStream;
+        }
+
+        @Override
+        public void close() {
+            if (inputStream != null) {
+                try { inputStream.close(); } catch (Throwable ignored) {}
+                inputStream = null;
+            }
+            if (connection != null) {
+                connection.disconnect();
+                connection = null;
+            }
+        }
+
+        @Override
+        public void setCache(java.io.OutputStream cacheStream) {
+            this.cacheStream = cacheStream;
+        }
+
+        @Override
+        public boolean requestCompleted(boolean success) {
+            return success;
+        }
+    }
+
+    private static class StandardHttpEngineFactory implements org.oscim.tiling.source.HttpEngine.Factory {
+        @Override
+        public org.oscim.tiling.source.HttpEngine create(org.oscim.tiling.source.UrlTileSource tileSource) {
+            return new StandardHttpEngine(tileSource);
+        }
+    }
+
     private void initialize() {
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
@@ -194,11 +256,9 @@ public class BackendMapView extends MapView {
                 .tilePath("/{Z}/{X}/{Y}.png")
                 .build();
         tileSource.setCache(cache);
-        try {
-            tileSource.setHttpRequestHeaders(java.util.Collections.singletonMap("User-Agent", "MorphePhotos/1.0 (Android; Map)"));
-        } catch (Throwable ignored) {}
+        tileSource.setHttpEngine(new StandardHttpEngineFactory());
         org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
-        map().setBaseMap(baseLayer);
+        map().layers().add(0, baseLayer);
         Layers layers = map().layers();
         layers.add(drawables = new ClearableVectorLayer(map()));
         layers.add(items = new ItemizedLayer<MarkerItem>(map(), new MarkerSymbol(
