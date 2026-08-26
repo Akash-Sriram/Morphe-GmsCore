@@ -58,9 +58,95 @@ public class VisibleRegion extends AutoSafeParcelable {
      * orientated top view
      */
     public VisibleRegion(LatLngBounds bounds) {
-        this(bounds.southwest, new LatLng(bounds.southwest.latitude, bounds.northeast.longitude),
-                new LatLng(bounds.northeast.latitude, bounds.southwest.longitude), bounds.northeast,
-                bounds);
+        this(getSouthwest(bounds),
+             new LatLng(getLat(getSouthwest(bounds)), getLon(getNortheast(bounds))),
+             new LatLng(getLat(getNortheast(bounds)), getLon(getSouthwest(bounds))),
+             getNortheast(bounds),
+             bounds);
+    }
+
+    private static double getLat(Object latLng) {
+        if (latLng == null) return 0;
+        try {
+            java.lang.reflect.Field f = latLng.getClass().getField("latitude");
+            return f.getDouble(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            java.lang.reflect.Method m = latLng.getClass().getMethod("getLatitude");
+            return (Double) m.invoke(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            for (java.lang.reflect.Field f : latLng.getClass().getDeclaredFields()) {
+                if (f.getType() == double.class) {
+                    f.setAccessible(true);
+                    return f.getDouble(latLng);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return 0;
+    }
+
+    private static double getLon(Object latLng) {
+        if (latLng == null) return 0;
+        try {
+            java.lang.reflect.Field f = latLng.getClass().getField("longitude");
+            return f.getDouble(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            java.lang.reflect.Method m = latLng.getClass().getMethod("getLongitude");
+            return (Double) m.invoke(latLng);
+        } catch (Throwable ignored) {}
+        try {
+            int count = 0;
+            for (java.lang.reflect.Field f : latLng.getClass().getDeclaredFields()) {
+                if (f.getType() == double.class) {
+                    count++;
+                    if (count == 2) {
+                        f.setAccessible(true);
+                        return f.getDouble(latLng);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return 0;
+    }
+
+    private static LatLng getSouthwest(Object bounds) {
+        if (bounds == null) return new LatLng(0, 0);
+        try {
+            java.lang.reflect.Field f = bounds.getClass().getField("southwest");
+            return (LatLng) f.get(bounds);
+        } catch (Throwable ignored) {}
+        try {
+            for (java.lang.reflect.Field f : bounds.getClass().getDeclaredFields()) {
+                if (LatLng.class.isAssignableFrom(f.getType())) {
+                    f.setAccessible(true);
+                    return (LatLng) f.get(bounds);
+                }
+            }
+        } catch (Throwable ignored) {}
+        return new LatLng(0, 0);
+    }
+
+    private static LatLng getNortheast(Object bounds) {
+        if (bounds == null) return new LatLng(0, 0);
+        try {
+            java.lang.reflect.Field f = bounds.getClass().getField("northeast");
+            return (LatLng) f.get(bounds);
+        } catch (Throwable ignored) {}
+        try {
+            int count = 0;
+            for (java.lang.reflect.Field f : bounds.getClass().getDeclaredFields()) {
+                if (LatLng.class.isAssignableFrom(f.getType())) {
+                    count++;
+                    if (count == 2) {
+                        f.setAccessible(true);
+                        return (LatLng) f.get(bounds);
+                    }
+                }
+            }
+        } catch (Throwable ignored) {}
+        return new LatLng(0, 0);
     }
 
     public static Creator<VisibleRegion> CREATOR = new AutoCreator<VisibleRegion>(VisibleRegion.class);

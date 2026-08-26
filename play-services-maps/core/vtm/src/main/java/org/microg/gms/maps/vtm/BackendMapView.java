@@ -116,14 +116,21 @@ public class BackendMapView extends MapView {
 
     public BackendMapView(Context context) {
         super(loadNativeLib(context));
-        if (context instanceof ContextWrapper) {
-            AndroidAssets.init(ApplicationContextWrapper.matchingApplicationContext(((ContextWrapper) context).getBaseContext()));
+        try {
+            AndroidAssets.init(context);
+        } catch (Throwable t) {
+            Log.w(TAG, "AndroidAssets.init failed", t);
         }
         initialize();
     }
 
     public BackendMapView(Context context, AttributeSet attributeSet) {
         super(loadNativeLib(context), attributeSet);
+        try {
+            AndroidAssets.init(context);
+        } catch (Throwable t) {
+            Log.w(TAG, "AndroidAssets.init failed", t);
+        }
         initialize();
     }
 
