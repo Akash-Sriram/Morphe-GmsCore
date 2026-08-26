@@ -162,6 +162,15 @@ public class BackendMapView extends MapView {
             }
             if (is == null) {
                 try {
+                    ClassLoader cl = org.oscim.renderer.GLShader.class.getClassLoader();
+                    if (cl != null) {
+                        is = cl.getResourceAsStream("assets/" + path);
+                        if (is == null) is = cl.getResourceAsStream(path);
+                    }
+                } catch (Throwable ignored) {}
+            }
+            if (is == null) {
+                try {
                     ClassLoader cl = Thread.currentThread().getContextClassLoader();
                     if (cl != null) {
                         is = cl.getResourceAsStream("assets/" + path);

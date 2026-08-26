@@ -131,12 +131,14 @@ public class BackendMap implements ItemizedLayer.OnItemGestureListener<MarkerIte
         }
         locationLayer.setEnabled(true);
         locationLayer.setPosition(lat, lon, accuracy > 0 ? accuracy : 20.0);
+        mapView.map().updateMap(true);
         redraw();
     }
 
     public void setLocationEnabled(boolean enabled) {
         if (locationLayer != null) {
             locationLayer.setEnabled(enabled);
+            mapView.map().updateMap(true);
             redraw();
         }
     }

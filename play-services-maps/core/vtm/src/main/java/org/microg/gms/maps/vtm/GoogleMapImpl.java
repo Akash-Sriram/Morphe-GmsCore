@@ -662,7 +662,10 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
 
     @Override
     public Location getMyLocation() throws RemoteException {
-        if (myLocation != null) return myLocation;
+        if (myLocation != null) {
+            backendMap.setLocation(myLocation.getLatitude(), myLocation.getLongitude(), myLocation.getAccuracy());
+            return myLocation;
+        }
         try {
             LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
             if (locationManager != null) {
@@ -671,6 +674,7 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
                         Location loc = locationManager.getLastKnownLocation(provider);
                         if (loc != null) {
                             myLocation = loc;
+                            backendMap.setLocation(loc.getLatitude(), loc.getLongitude(), loc.getAccuracy());
                             return loc;
                         }
                     } catch (SecurityException ignored) {}
