@@ -138,19 +138,62 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     }
 
     private void initFromOptions() {
+        if (options == null) return;
         try {
-            uiSettings.setCompassEnabled(options.getCompassEnabled());
-            uiSettings.setRotateGesturesEnabled(options.isRotateGesturesEnabled());
-            uiSettings.setTiltGesturesEnabled(options.isTiltGesturesEnabled());
-            uiSettings.setScrollGesturesEnabled(options.isScrollGesturesEnabled());
-            uiSettings.setZoomControlsEnabled(options.isZoomControlsEnabled());
-            uiSettings.setZoomGesturesEnabled(options.isZoomGesturesEnabled());
-            if (options.getCamera() != null) {
-                backendMap.applyCameraUpdate(MapPositionCameraUpdate.directMapPosition(GmsMapsTypeHelper.fromCameraPosition(options.getCamera())));
-            }
-        } catch (RemoteException e) {
-            // Never happens: not remote
+            try {
+                Boolean b = getOptionBoolean(options, "getCompassEnabled", "isCompassEnabled");
+                if (b != null) uiSettings.setCompassEnabled(b);
+            } catch (Throwable ignored) {}
+
+            try {
+                Boolean b = getOptionBoolean(options, "getRotateGesturesEnabled", "isRotateGesturesEnabled");
+                if (b != null) uiSettings.setRotateGesturesEnabled(b);
+            } catch (Throwable ignored) {}
+
+            try {
+                Boolean b = getOptionBoolean(options, "getTiltGesturesEnabled", "isTiltGesturesEnabled");
+                if (b != null) uiSettings.setTiltGesturesEnabled(b);
+            } catch (Throwable ignored) {}
+
+            try {
+                Boolean b = getOptionBoolean(options, "getScrollGesturesEnabled", "isScrollGesturesEnabled");
+                if (b != null) uiSettings.setScrollGesturesEnabled(b);
+            } catch (Throwable ignored) {}
+
+            try {
+                Boolean b = getOptionBoolean(options, "getZoomControlsEnabled", "isZoomControlsEnabled");
+                if (b != null) uiSettings.setZoomControlsEnabled(b);
+            } catch (Throwable ignored) {}
+
+            try {
+                Boolean b = getOptionBoolean(options, "getZoomGesturesEnabled", "isZoomGesturesEnabled");
+                if (b != null) uiSettings.setZoomGesturesEnabled(b);
+            } catch (Throwable ignored) {}
+
+            try {
+                if (options.getCamera() != null) {
+                    backendMap.applyCameraUpdate(MapPositionCameraUpdate.directMapPosition(GmsMapsTypeHelper.fromCameraPosition(options.getCamera())));
+                }
+            } catch (Throwable ignored) {}
+        } catch (Throwable t) {
+            Log.w(TAG, "Error initializing from options", t);
         }
+    }
+
+    private static Boolean getOptionBoolean(GoogleMapOptions options, String... methodNames) {
+        for (String name : methodNames) {
+            try {
+                java.lang.reflect.Method m = options.getClass().getMethod(name);
+                Object res = m.invoke(options);
+                if (res instanceof Boolean) return (Boolean) res;
+                if (res instanceof Byte) {
+                    byte b = (Byte) res;
+                    if (b == 1) return true;
+                    if (b == 0) return false;
+                }
+            } catch (Throwable ignored) {}
+        }
+        return null;
     }
 
     public void onDestroy() {
