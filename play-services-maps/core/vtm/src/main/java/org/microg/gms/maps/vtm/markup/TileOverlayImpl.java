@@ -17,71 +17,90 @@
 package org.microg.gms.maps.vtm.markup;
 
 import android.os.RemoteException;
+import com.google.android.gms.maps.model.TileOverlayOptions;
 import com.google.android.gms.maps.model.internal.ITileOverlayDelegate;
 
 public class TileOverlayImpl extends ITileOverlayDelegate.Stub {
+    private String id;
+    private float zIndex;
+    private boolean visible = true;
+    private boolean fadeIn = true;
+    private float transparency = 0.0f;
+
+    public TileOverlayImpl() {
+        this.id = "to0";
+    }
+
+    public TileOverlayImpl(String id, TileOverlayOptions options) {
+        this.id = id;
+        if (options != null) {
+            this.zIndex = options.getZIndex();
+            this.visible = options.isVisible();
+            this.fadeIn = options.getFadeIn();
+            this.transparency = options.getTransparency();
+        }
+    }
+
     @Override
     public void remove() throws RemoteException {
-
     }
 
     @Override
     public void clearTileCache() throws RemoteException {
-
     }
 
     @Override
     public String getId() throws RemoteException {
-        return null;
+        return id;
     }
 
     @Override
     public void setZIndex(float zIndex) throws RemoteException {
-
+        this.zIndex = zIndex;
     }
 
     @Override
     public float getZIndex() throws RemoteException {
-        return 0;
+        return zIndex;
     }
 
     @Override
     public void setVisible(boolean visible) throws RemoteException {
-
+        this.visible = visible;
     }
 
     @Override
     public boolean isVisible() throws RemoteException {
-        return false;
+        return visible;
     }
 
     @Override
     public boolean equalsRemote(ITileOverlayDelegate other) throws RemoteException {
-        return false;
+        return other != null && other.getId() != null && other.getId().equals(getId());
     }
 
     @Override
     public int hashCodeRemote() throws RemoteException {
-        return 0;
+        return id != null ? id.hashCode() : 0;
     }
 
     @Override
     public void setFadeIn(boolean fadeIn) throws RemoteException {
-
+        this.fadeIn = fadeIn;
     }
 
     @Override
     public boolean getFadeIn() throws RemoteException {
-        return false;
+        return fadeIn;
     }
 
     @Override
     public void setTransparency(float transparency) throws RemoteException {
-
+        this.transparency = transparency;
     }
 
     @Override
     public float getTransparency() throws RemoteException {
-        return 0;
+        return transparency;
     }
 }

@@ -324,6 +324,12 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     private String getNextPolygonId() {
         return "p" + polygonCounter++;
     }
+
+    private int tileOverlayCounter = 0;
+
+    private String getNextTileOverlayId() {
+        return "to" + tileOverlayCounter++;
+    }
     
     /*
     Camera
@@ -449,8 +455,9 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
 
     @Override
     public ITileOverlayDelegate addTileOverlay(TileOverlayOptions options) throws RemoteException {
-        Log.d(TAG, "not yet usable: addTileOverlay");
-        return new TileOverlayImpl(); // TODO
+        String id = getNextTileOverlayId();
+        Log.d(TAG, "addTileOverlay: " + id);
+        return new TileOverlayImpl(id, options);
     }
 
     @Override
