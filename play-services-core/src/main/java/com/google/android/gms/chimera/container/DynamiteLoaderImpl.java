@@ -92,6 +92,13 @@ public class DynamiteLoaderImpl extends IDynamiteLoader.Stub {
             Log.d(TAG, "returning v1 for maps module: " + moduleId);
             return 1;
         }
+        if (moduleId.startsWith("com.google.android.gms.vision")) {
+            Log.d(TAG, "returning v1 for vision module: " + moduleId);
+            return 1;
+        }
+        if (moduleId.startsWith("com.google.android.gms.cronet")) {
+            return 2;
+        }
 
         Log.d(TAG, "unimplemented Method: getModuleVersion for " + moduleId);
         return 0;
