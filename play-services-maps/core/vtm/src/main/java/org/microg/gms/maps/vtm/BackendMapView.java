@@ -201,87 +201,77 @@ public class BackendMapView extends MapView {
         return drawables;
     }
 
-    private static class StandardHttpEngine implements org.oscim.tiling.source.HttpEngine {
-        private final org.oscim.tiling.source.UrlTileSource tileSource;
-        private java.net.HttpURLConnection connection;
-        private java.io.InputStream inputStream;
-        private java.io.OutputStream cacheStream;
-
-        public StandardHttpEngine(org.oscim.tiling.source.UrlTileSource tileSource) {
-            this.tileSource = tileSource;
+    public static class CustomBitmapTileSource extends org.oscim.tiling.source.bitmap.BitmapTileSource {
+        public CustomBitmapTileSource(String url, String tilePath, int zoomMin, int zoomMax) {
+            super(url, tilePath, zoomMin, zoomMax);
         }
 
         @Override
-        public void sendRequest(org.oscim.core.Tile tile) throws java.io.IOException {
-            String urlString = tileSource.getTileUrl(tile);
-            Log.i("GmsMapView", ">>> HTTP sendRequest tile: " + urlString);
-            try {
-                java.net.URL url = new java.net.URL(urlString);
-                connection = (java.net.HttpURLConnection) url.openConnection();
-                connection.setRequestMethod("GET");
-                connection.setConnectTimeout(15000);
-                connection.setReadTimeout(15000);
-                connection.setRequestProperty("User-Agent", "MorphePhotos/1.0 (Android; Map)");
-                int code = connection.getResponseCode();
-                Log.i("GmsMapView", ">>> HTTP tile response " + code + " for: " + urlString);
-                if (code == 200) {
-                    java.io.InputStream raw = connection.getInputStream();
-                    java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
-                    byte[] buf = new byte[4096];
-                    int n;
-                    while ((n = raw.read(buf)) != -1) {
-                        baos.write(buf, 0, n);
-                        if (cacheStream != null) {
-                            try {
-                                cacheStream.write(buf, 0, n);
-                            } catch (Throwable ignored) {}
+        public org.oscim.tiling.ITileDataSource getDataSource() {
+            return new org.oscim.tiling.ITileDataSource() {
+                private boolean canceled = false;
+
+                @Override
+                public void query(org.oscim.layers.tile.MapTile mapTile, org.oscim.tiling.ITileDataSink sink) {
+                    if (canceled) {
+                        sink.completed(org.oscim.tiling.QueryResult.FAILED);
+                        return;
+                    }
+                    String urlString = getTileUrl(mapTile);
+                    Log.i(TAG, ">>> CustomBitmapTileSource fetching: " + urlString);
+                    java.net.HttpURLConnection conn = null;
+                    try {
+                        java.net.URL url = new java.net.URL(urlString);
+                        conn = (java.net.HttpURLConnection) url.openConnection();
+                        conn.setRequestMethod("GET");
+                        conn.setConnectTimeout(15000);
+                        conn.setReadTimeout(15000);
+                        conn.setRequestProperty("User-Agent", "MorphePhotos/1.0 (Android; Map)");
+                        int code = conn.getResponseCode();
+                        if (code == 200) {
+                            java.io.InputStream in = conn.getInputStream();
+                            java.io.ByteArrayOutputStream baos = new java.io.ByteArrayOutputStream();
+                            byte[] buf = new byte[4096];
+                            int n;
+                            while ((n = in.read(buf)) != -1) {
+                                baos.write(buf, 0, n);
+                            }
+                            in.close();
+                            byte[] bytes = baos.toByteArray();
+                            if (bytes.length > 0) {
+                                BitmapFactory.Options opts = new BitmapFactory.Options();
+                                opts.inPreferredConfig = android.graphics.Bitmap.Config.ARGB_8888;
+                                android.graphics.Bitmap bmp = BitmapFactory.decodeByteArray(bytes, 0, bytes.length, opts);
+                                if (bmp != null) {
+                                    sink.setTileImage(new AndroidBitmap(bmp));
+                                    sink.completed(org.oscim.tiling.QueryResult.SUCCESS);
+                                    Log.i(TAG, ">>> CustomBitmapTileSource SUCCESS for: " + urlString);
+                                    return;
+                                }
+                            }
+                        } else {
+                            Log.e(TAG, ">>> HTTP error " + code + " for: " + urlString);
+                        }
+                    } catch (Throwable t) {
+                        Log.e(TAG, ">>> Error fetching tile " + urlString, t);
+                    } finally {
+                        if (conn != null) {
+                            try { conn.disconnect(); } catch (Throwable ignored) {}
                         }
                     }
-                    raw.close();
-                    inputStream = new java.io.ByteArrayInputStream(baos.toByteArray());
-                } else {
-                    Log.e("GmsMapView", "HTTP error " + code + " fetching tile: " + urlString);
-                    throw new java.io.IOException("Tile request HTTP error: " + code);
+                    sink.completed(org.oscim.tiling.QueryResult.FAILED);
                 }
-            } catch (Throwable t) {
-                Log.e("GmsMapView", "Exception fetching tile " + urlString, t);
-                if (t instanceof java.io.IOException) throw (java.io.IOException) t;
-                throw new java.io.IOException(t);
-            }
-        }
 
-        @Override
-        public java.io.InputStream read() throws java.io.IOException {
-            return inputStream;
-        }
+                @Override
+                public void dispose() {
+                    canceled = true;
+                }
 
-        @Override
-        public void close() {
-            if (inputStream != null) {
-                try { inputStream.close(); } catch (Throwable ignored) {}
-                inputStream = null;
-            }
-            if (connection != null) {
-                try { connection.disconnect(); } catch (Throwable ignored) {}
-                connection = null;
-            }
-        }
-
-        @Override
-        public void setCache(java.io.OutputStream cacheStream) {
-            this.cacheStream = cacheStream;
-        }
-
-        @Override
-        public boolean requestCompleted(boolean success) {
-            return success;
-        }
-    }
-
-    private static class StandardHttpEngineFactory implements org.oscim.tiling.source.HttpEngine.Factory {
-        @Override
-        public org.oscim.tiling.source.HttpEngine create(org.oscim.tiling.source.UrlTileSource tileSource) {
-            return new StandardHttpEngine(tileSource);
+                @Override
+                public void cancel() {
+                    canceled = true;
+                }
+            };
         }
     }
 
@@ -289,14 +279,13 @@ public class BackendMapView extends MapView {
         Log.i("GmsMapView", ">>> initialize() starting MapView setup");
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
-        org.oscim.tiling.source.bitmap.BitmapTileSource tileSource = new org.oscim.tiling.source.bitmap.BitmapTileSource(
+        CustomBitmapTileSource tileSource = new CustomBitmapTileSource(
                 "https://a.tile.openstreetmap.fr/hot",
                 "/{Z}/{X}/{Y}.png",
                 0,
                 19
         );
         tileSource.setCache(cache);
-        tileSource.setHttpEngine(new StandardHttpEngineFactory());
         org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
         map().setBaseMap(baseLayer);
         Layers layers = map().layers();
