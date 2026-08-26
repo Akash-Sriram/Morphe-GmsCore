@@ -593,21 +593,24 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
             LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
             if (myLocation && locationManager != null) {
                 try {
-                    Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                    if (last == null) last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                    if (last != null) {
-                        this.myLocation = last;
-                        if (onMyLocationChangeListener != null) {
-                            onMyLocationChangeListener.onMyLocationChanged(ObjectWrapper.wrap(last));
-                        }
+                    for (String provider : locationManager.getAllProviders()) {
+                        try {
+                            Location last = locationManager.getLastKnownLocation(provider);
+                            if (last != null) {
+                                this.myLocation = last;
+                                if (onMyLocationChangeListener != null) {
+                                    onMyLocationChangeListener.onMyLocationChanged(ObjectWrapper.wrap(last));
+                                }
+                                break;
+                            }
+                        } catch (SecurityException ignored) {}
                     }
-                    if (locationManager.isProviderEnabled(LocationManager.GPS_PROVIDER)) {
-                        locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 5000, 10, listener, Looper.getMainLooper());
+                    for (String provider : locationManager.getProviders(true)) {
+                        try {
+                            locationManager.requestLocationUpdates(provider, 2000, 5, listener, Looper.getMainLooper());
+                        } catch (SecurityException ignored) {}
                     }
-                    if (locationManager.isProviderEnabled(LocationManager.NETWORK_PROVIDER)) {
-                        locationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, 5000, 10, listener, Looper.getMainLooper());
-                    }
-                } catch (SecurityException ignored) {}
+                } catch (Throwable ignored) {}
             } else if (locationManager != null) {
                 locationManager.removeUpdates(listener);
             }
@@ -622,10 +625,15 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
         try {
             LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
             if (locationManager != null) {
-                Location last = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-                if (last == null) last = locationManager.getLastKnownLocation(LocationManager.NETWORK_PROVIDER);
-                if (last == null) last = locationManager.getLastKnownLocation(LocationManager.PASSIVE_PROVIDER);
-                return last;
+                for (String provider : locationManager.getAllProviders()) {
+                    try {
+                        Location loc = locationManager.getLastKnownLocation(provider);
+                        if (loc != null) {
+                            myLocation = loc;
+                            return loc;
+                        }
+                    } catch (SecurityException ignored) {}
+                }
             }
         } catch (Throwable ignored) {}
         return null;

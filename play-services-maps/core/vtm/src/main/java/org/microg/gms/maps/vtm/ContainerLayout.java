@@ -17,6 +17,8 @@
 package org.microg.gms.maps.vtm;
 
 import android.content.Context;
+import android.view.View;
+import android.view.ViewGroup;
 import android.widget.FrameLayout;
 
 import org.oscim.utils.ThreadUtils;
@@ -24,22 +26,46 @@ import org.oscim.utils.ThreadUtils;
 public class ContainerLayout extends FrameLayout {
     public ContainerLayout(Context context) {
         super(context);
-        setLayoutParams(new android.view.ViewGroup.LayoutParams(
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT,
-                android.view.ViewGroup.LayoutParams.MATCH_PARENT
+        setLayoutParams(new ViewGroup.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT,
+                ViewGroup.LayoutParams.MATCH_PARENT
         ));
+    }
+
+    @Override
+    public void setPadding(int left, int top, int right, int bottom) {
+        super.setPadding(0, 0, 0, 0);
+    }
+
+    @Override
+    public void setPaddingRelative(int start, int top, int end, int bottom) {
+        super.setPaddingRelative(0, 0, 0, 0);
     }
 
     @Override
     protected void onMeasure(int widthMeasureSpec, int heightMeasureSpec) {
         super.onMeasure(widthMeasureSpec, heightMeasureSpec);
-        android.util.Log.i("GmsContainer", "ContainerLayout measured: " + getMeasuredWidth() + "x" + getMeasuredHeight());
+        int w = getMeasuredWidth();
+        int h = getMeasuredHeight();
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            child.measure(
+                    MeasureSpec.makeMeasureSpec(w, MeasureSpec.EXACTLY),
+                    MeasureSpec.makeMeasureSpec(h, MeasureSpec.EXACTLY)
+            );
+        }
+        android.util.Log.i("GmsContainer", "ContainerLayout measured: " + w + "x" + h);
     }
 
     @Override
     protected void onLayout(boolean changed, int left, int top, int right, int bottom) {
         ThreadUtils.init();
-        super.onLayout(changed, left, top, right, bottom);
-        android.util.Log.i("GmsContainer", "ContainerLayout onLayout: " + (right - left) + "x" + (bottom - top));
+        int width = right - left;
+        int height = bottom - top;
+        for (int i = 0; i < getChildCount(); i++) {
+            View child = getChildAt(i);
+            child.layout(0, 0, width, height);
+        }
+        android.util.Log.i("GmsContainer", "ContainerLayout onLayout: " + width + "x" + height);
     }
 }
