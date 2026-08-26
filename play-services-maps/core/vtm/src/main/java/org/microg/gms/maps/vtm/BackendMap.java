@@ -120,11 +120,17 @@ public class BackendMap implements ItemizedLayer.OnItemGestureListener<MarkerIte
 
     public void setLocation(double lat, double lon, float accuracy) {
         if (locationLayer == null) {
-            locationLayer = new org.oscim.layers.LocationLayer(mapView.map());
+            float density = context.getResources().getDisplayMetrics().density;
+            locationLayer = new org.oscim.layers.LocationLayer(mapView.map(), Math.max(1.5f, density));
+            if (locationLayer.locationRenderer != null) {
+                locationLayer.locationRenderer.setColor(0xFF1A73E8);
+                locationLayer.locationRenderer.animate(true);
+                locationLayer.locationRenderer.setShowAccuracyZoom(0);
+            }
             mapView.map().layers().add(locationLayer);
         }
         locationLayer.setEnabled(true);
-        locationLayer.setPosition(lat, lon, accuracy);
+        locationLayer.setPosition(lat, lon, accuracy > 0 ? accuracy : 20.0);
         redraw();
     }
 

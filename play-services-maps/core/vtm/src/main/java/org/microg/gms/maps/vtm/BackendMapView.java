@@ -285,10 +285,10 @@ public class BackendMapView extends MapView {
         ITileCache cache = new SharedTileCache(getContext());
         cache.setCacheSize(512 * (1 << 10));
         CustomBitmapTileSource tileSource = new CustomBitmapTileSource(
-                "https://a.basemaps.cartocdn.com/rastertiles/voyager",
-                "/{Z}/{X}/{Y}@2x.png",
+                "https://a.tile.openstreetmap.fr/hot",
+                "/{Z}/{X}/{Y}.png",
                 0,
-                20
+                19
         );
         tileSource.setCache(cache);
         org.oscim.layers.tile.bitmap.BitmapTileLayer baseLayer = new org.oscim.layers.tile.bitmap.BitmapTileLayer(map(), tileSource);
