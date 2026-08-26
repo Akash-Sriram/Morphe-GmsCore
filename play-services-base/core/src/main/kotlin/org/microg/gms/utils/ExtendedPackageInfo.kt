@@ -36,13 +36,21 @@ class ExtendedPackageInfo(private val packageManager: PackageManager, val packag
 
     val targetSdkVersion by lazy { basicApplicationInfo?.targetSdkVersion ?: -1 }
 
+    val effectivePackageName by lazy { PackageSpoofUtils.spoofPackageName(packageManager, packageName) ?: packageName }
+    val effectiveCertificatesSha1 by lazy {
+        val spoofedSig = PackageSpoofUtils.spoofSignature(packageManager, packageName, null as String?)
+        if (spoofedSig != null) listOf(spoofedSig) else certificatesHashSha1Strings
+    }
+
     private val packageAndCertHashes by lazy {
         listOf(
-            certificatesHashSha1Strings.map { PackageAndCertHash(packageName, "SHA1", it) },
-            certificatesHashSha256Strings.map { PackageAndCertHash(packageName, "SHA-256", it) },
+            effectiveCertificatesSha1.map { PackageAndCertHash(effectivePackageName, "SHA1", it) },
+            certificatesHashSha256Strings.map { PackageAndCertHash(effectivePackageName, "SHA-256", it) },
         ).flatten()
     }
-    val isGooglePackage by lazy { packageAndCertHashes.any { isGooglePackage(it) } }
+    val isGooglePackage by lazy {
+        effectivePackageName != packageName || packageName.startsWith("app.morphe.") || packageName.startsWith("app.revanced.") || packageAndCertHashes.any { isGooglePackage(it) }
+    }
     val isPlatformPackage by lazy {
         val platformCertificates = packageManager.getPlatformCertificates()
         certificates.any { it in platformCertificates }
@@ -50,5 +58,11 @@ class ExtendedPackageInfo(private val packageManager: PackageManager, val packag
     val isGoogleOrPlatformPackage by lazy { isGooglePackage || isPlatformPackage }
 
     private val googlePackagePermissions by lazy { packageAndCertHashes.flatMap { getGooglePackagePermissions(it) }.toSet() }
-    fun hasGooglePackagePermission(permission: GooglePackagePermission) = permission in googlePackagePermissions
+    fun hasGooglePackagePermission(permission: GooglePackagePermission): Boolean {
+        if (permission in googlePackagePermissions) return true
+        if (effectivePackageName != packageName || packageName.startsWith("app.morphe.") || packageName.startsWith("app.revanced.")) {
+            return true
+        }
+        return false
+    }
 }

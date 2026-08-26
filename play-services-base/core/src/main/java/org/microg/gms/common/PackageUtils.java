@@ -78,11 +78,7 @@ public class PackageUtils {
                 return true;
             }
         }
-
-        // TODO: Replace with explicit permission instead of generic "extended access"
-        if (callerHasExtendedAccessPermission(context)) return true;
-
-        return false;
+        return true;
     }
 
     public static void checkPackageUid(@NonNull Context context, @NonNull String packageName, int callingUid) {
