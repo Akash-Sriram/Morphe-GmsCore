@@ -216,6 +216,12 @@
                 android:resource="@xml/file_provider_paths"/>
         </provider>
 
+        <!-- Chimera Provider for Dynamite Modules & Maps -->
+        <provider
+            android:name="org.microg.gms.chimera.ServiceProvider"
+            android:authorities="${basePackageName}.android.gms.chimera"
+            android:exported="true" />
+
         <!-- Device Checkin -->
 
         <service android:name="org.microg.gms.checkin.CheckinService">
