@@ -97,8 +97,10 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     private LocationListener listener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            // TODO: Actually do my location overlay
             myLocation = location;
+            if (location != null) {
+                backendMap.setLocation(location.getLatitude(), location.getLongitude(), location.getAccuracy());
+            }
             if (onMyLocationChangeListener != null && location != null) {
                 try {
                     onMyLocationChangeListener.onMyLocationChanged(ObjectWrapper.wrap(location));
@@ -596,6 +598,7 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
     public void setMyLocationEnabled(boolean myLocation) throws RemoteException {
         this.myLocationEnabled = myLocation;
         Log.i(TAG, "setMyLocationEnabled: " + myLocation);
+        backendMap.setLocationEnabled(myLocation);
         try {
             LocationManager locationManager = (LocationManager) context.getSystemService(Context.LOCATION_SERVICE);
             if (myLocation && locationManager != null) {
@@ -605,6 +608,7 @@ public class GoogleMapImpl extends IGoogleMapDelegate.Stub
                             Location last = locationManager.getLastKnownLocation(provider);
                             if (last != null) {
                                 this.myLocation = last;
+                                backendMap.setLocation(last.getLatitude(), last.getLongitude(), last.getAccuracy());
                                 if (onMyLocationChangeListener != null) {
                                     onMyLocationChangeListener.onMyLocationChanged(ObjectWrapper.wrap(last));
                                 }
