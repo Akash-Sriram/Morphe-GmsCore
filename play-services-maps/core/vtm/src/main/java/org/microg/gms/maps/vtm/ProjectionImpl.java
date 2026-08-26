@@ -16,7 +16,10 @@
 
 package org.microg.gms.maps.vtm;
 
+import android.os.Parcel;
+import android.os.Parcelable;
 import android.os.RemoteException;
+import android.util.Log;
 
 import com.google.android.gms.dynamic.IObjectWrapper;
 import com.google.android.gms.dynamic.ObjectWrapper;
@@ -28,6 +31,8 @@ import org.oscim.core.Point;
 import org.oscim.map.Viewport;
 
 public class ProjectionImpl extends IProjectionDelegate.Stub {
+    private static final String TAG = "GmsProjectionImpl";
+    private static final String DESCRIPTOR = "com.google.android.gms.maps.internal.IProjectionDelegate";
     private Viewport viewport;
     private float[] extents = new float[8];
 
@@ -55,5 +60,50 @@ public class ProjectionImpl extends IProjectionDelegate.Stub {
         viewport.getMapExtents(extents, 0);
         // TODO: Support non-flat map extents
         return new VisibleRegion(GmsMapsTypeHelper.toLatLngBounds(viewport.getBBox(null, 0)));
+    }
+
+    @Override
+    public boolean onTransact(int code, Parcel data, Parcel reply, int flags) throws RemoteException {
+        if (code == TRANSACTION_toScreenLocation) {
+            data.enforceInterface(DESCRIPTOR);
+            LatLng latLng = null;
+            if (data.readInt() != 0) {
+                try {
+                    Class<?> clazz = Class.forName("com.google.android.gms.maps.model.LatLng");
+                    Parcelable.Creator<?> creator = (Parcelable.Creator<?>) clazz.getField("CREATOR").get(null);
+                    latLng = (LatLng) creator.createFromParcel(data);
+                } catch (Throwable t) {
+                    Log.w(TAG, "Failed to read LatLng from parcel", t);
+                }
+            }
+            IObjectWrapper result = this.toScreenLocation(latLng);
+            reply.writeNoException();
+            reply.writeStrongBinder(result != null ? result.asBinder() : null);
+            return true;
+        } else if (code == TRANSACTION_fromScreenLocation) {
+            data.enforceInterface(DESCRIPTOR);
+            IObjectWrapper arg0 = IObjectWrapper.Stub.asInterface(data.readStrongBinder());
+            LatLng result = this.fromScreenLocation(arg0);
+            reply.writeNoException();
+            if (result != null) {
+                reply.writeInt(1);
+                result.writeToParcel(reply, Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+            } else {
+                reply.writeInt(0);
+            }
+            return true;
+        } else if (code == TRANSACTION_getVisibleRegion) {
+            data.enforceInterface(DESCRIPTOR);
+            VisibleRegion result = this.getVisibleRegion();
+            reply.writeNoException();
+            if (result != null) {
+                reply.writeInt(1);
+                result.writeToParcel(reply, Parcelable.PARCELABLE_WRITE_RETURN_VALUE);
+            } else {
+                reply.writeInt(0);
+            }
+            return true;
+        }
+        return super.onTransact(code, data, reply, flags);
     }
 }
