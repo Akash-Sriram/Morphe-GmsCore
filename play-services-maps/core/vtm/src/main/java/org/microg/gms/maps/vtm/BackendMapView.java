@@ -109,9 +109,13 @@ public class BackendMapView extends MapView {
     protected void onSizeChanged(int w, int h, int oldw, int oldh) {
         super.onSizeChanged(w, h, oldw, oldh);
         Log.i(TAG, ">>> onSizeChanged: " + w + "x" + h + " (old: " + oldw + "x" + oldh + ")");
-        if (map() != null && map().viewport() != null) {
-            map().viewport().setScreenSize(w, h);
-            map().updateMap(true);
+        if (w > 0 && h > 0 && map() != null && map().viewport() != null) {
+            try {
+                map().viewport().setScreenSize(w, h);
+                map().updateMap(true);
+            } catch (Throwable t) {
+                Log.w(TAG, "setScreenSize error", t);
+            }
         }
     }
 
